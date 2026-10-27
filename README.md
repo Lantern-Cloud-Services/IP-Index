@@ -4,7 +4,8 @@ A single home for Lantern Cloud Services presentation decks. Every deck lives in
 [`presentations/`](presentations/), and the site is published to GitHub Pages with a landing page that
 shows one tile per presentation.
 
-- **Live site:** http://www.lanterncloudservices.com/IP-Index/
+- **Live site:** http://verbose-broccoli-pj8j68q.pages.github.io/ (private Pages; requires GitHub
+  sign-in with repo access. The current URL is always shown under Settings > Pages.)
 - **Offline:** clone the repo and open `index.html` in a browser. All links are relative, so it works
   the same from disk as it does on Pages.
 
