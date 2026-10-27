@@ -1,4 +1,4 @@
-# Copilot Champions Deep Dive
+# Copilot Champions Deep Dive Session 1
 
 A slide-deck presentation exploring how to use GitHub Copilot effectively in real-world, brownfield codebases — covering context-building, agent configuration, and iteration patterns that improve day-to-day AI-assisted development.
 
