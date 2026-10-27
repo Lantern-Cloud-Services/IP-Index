@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Copilot KPIs — Measuring what matters</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg-0: #07090f;
+    --bg-1: #0d1117;
+    --bg-2: #131a26;
+    --bg-3: #1b2436;
+    --border: #243047;
+    --border-soft: #1a2336;
+    --text-0: #f1f5fb;
+    --text-1: #cfd6e4;
+    --text-2: #8b95ab;
+    --text-3: #5a6378;
+    --cyan: #3aafff;
+    --cyan-soft: #75c7ff;
+    --green: #3fb950;
+    --green-soft: #7ee787;
+    --red: #f85149;
+    --purple: #b392f0;
+    --violet: #8b6fef;
+    --pink: #f0a3b7;
+    --teal: #59f0d0;
+    --gold: #e3b341;
+    --shadow: 0 10px 40px rgba(0,0,0,.45);
+    --r-lg: 18px;
+    --r-md: 12px;
+    --r-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%; overflow: hidden;
+    font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg-0);
+    color: var(--text-1);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Decorative animated background */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(900px 600px at 85% -10%, rgba(58,175,255,.10), transparent 60%),
+      radial-gradient(700px 500px at -10% 30%, rgba(179,146,240,.08), transparent 60%),
+      radial-gradient(800px 600px at 50% 120%, rgba(63,185,80,.07), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ------- Nav ------- */
+  .nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 32px;
+    background: rgba(7,9,15,.72);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-soft);
+    z-index: 100;
+  }
+  .nav .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 600; color: var(--text-0); letter-spacing: .2px;
+  }
+  .nav .brand .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 12px var(--green);
+  }
+  .nav .links { display: flex; gap: 22px; font-size: 13px; color: var(--text-2); }
+  .nav .links a {
+    color: inherit; text-decoration: none; transition: color .15s; cursor: pointer;
+  }
+  .nav .links a:hover { color: var(--text-0); }
+  .nav .links a.active { color: var(--cyan); }
+  @media (max-width: 820px) { .nav .links { display: none; } }
+  .nav .brand-link {
+    display: flex; align-items: center; gap: 10px;
+    color: inherit; text-decoration: none; cursor: pointer;
+  }
+  .nav .brand-link:hover { color: var(--cyan-soft); }
+  .nav .nav-actions { display: flex; align-items: center; gap: 8px; }
+  .nav .download-link {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-weight: 600; font-size: 13px; letter-spacing: .2px;
+    color: var(--text-0); text-decoration: none;
+    padding: 7px 14px; border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-2);
+    transition: border-color .15s, color .15s, background .15s, transform .15s;
+  }
+  .nav .download-link:hover {
+    color: var(--cyan); border-color: var(--cyan);
+    background: rgba(58,175,255,.08);
+    transform: translateY(-1px);
+  }
+  .nav .download-link svg { width: 15px; height: 15px; fill: currentColor; }
+
+  /* ------- Slide container ------- */
+  .slides-viewport {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 80px 64px 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    overflow-y: auto;
+    opacity: 0;
+    transform: translateX(60px);
+    pointer-events: none;
+    transition: opacity .45s ease, transform .45s ease;
+    max-width: 1280px;
+    margin: 0 auto;
+    left: 0; right: 0;
+  }
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+  .slide.exit-left {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+  @media (max-width: 720px) { .slide { padding: 72px 22px 72px; } }
+
+  /* ------- Navigation arrows ------- */
+  .arrow-nav {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    z-index: 200;
+    background: rgba(13,17,23,.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 10px 24px;
+  }
+  .arrow-btn {
+    width: 42px; height: 42px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--bg-2);
+    color: var(--text-1);
+    display: grid; place-items: center;
+    cursor: pointer;
+    transition: all .2s;
+    font-size: 0;
+  }
+  .arrow-btn:hover { background: var(--cyan); color: var(--bg-0); border-color: var(--cyan); }
+  .arrow-btn:disabled { opacity: .25; cursor: default; background: var(--bg-2); color: var(--text-3); border-color: var(--border); }
+  .arrow-btn svg { width: 18px; height: 18px; }
+  .page-indicator {
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+    font-size: 13px;
+    color: var(--text-2);
+    letter-spacing: 1px;
+    min-width: 60px;
+    text-align: center;
+  }
+
+  /* ------- Side rail dots ------- */
+  .rail {
+    position: fixed;
+    right: 22px; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 10px;
+    z-index: 90;
+  }
+  .rail a {
+    display: block; width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.18);
+    transition: all .2s;
+    position: relative;
+    cursor: pointer;
+  }
+  .rail a:hover { background: var(--cyan); border-color: var(--cyan); transform: scale(1.2); }
+  .rail a.active { background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+  .rail a::before {
+    content: attr(data-label);
+    position: absolute;
+    right: 22px; top: 50%; transform: translateY(-50%);
+    white-space: nowrap;
+    font-size: 11px; color: var(--text-2);
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    padding: 4px 8px; border-radius: 6px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s;
+  }
+  .rail a:hover::before { opacity: 1; }
+  @media (max-width: 900px) { .rail { display: none; } }
+
+  /* ------- Progress bar ------- */
+  .progress-bar {
+    position: fixed;
+    top: 53px; left: 0; right: 0;
+    height: 2px;
+    background: var(--bg-2);
+    z-index: 99;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan), var(--violet));
+    transition: width .4s ease;
+    width: 10%;
+  }
+
+  /* ------- Page tag & number ------- */
+  .page-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--green-soft); font-weight: 600;
+    margin-bottom: 18px;
+  }
+  .page-tag .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green); box-shadow: 0 0 8px var(--green);
+  }
+  .page-num {
+    position: absolute;
+    top: 80px; right: 64px;
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+    font-size: 12px; color: var(--text-3);
+    letter-spacing: 1px;
+  }
+  @media (max-width: 720px) { .page-num { right: 22px; } }
+
+  /* ------- Typography ------- */
+  h1.headline {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 700;
+    font-size: clamp(2.2rem, 4.6vw, 4rem);
+    line-height: 1.05;
+    color: var(--text-0);
+    letter-spacing: -.02em;
+    margin: 0 0 18px;
+  }
+  h1.sans {
+    font-family: 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    line-height: 1.1;
+    color: var(--text-0);
+    letter-spacing: -.01em;
+    margin: 0 0 18px;
+  }
+  .deck { color: var(--text-2); font-size: 1.05rem; max-width: 760px; margin: 0 0 36px; }
+  .deck em { color: var(--text-1); font-style: italic; }
+
+  h2.section {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--text-0);
+    letter-spacing: .2px;
+    margin: 0 0 14px;
+  }
+  .eyebrow {
+    font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--text-2); font-weight: 600;
+  }
+
+  /* ------- Page 1 — Hero/Title ------- */
+  .hero {
+    justify-content: flex-start;
+    padding-top: 80px;
+  }
+  .hero h1 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: clamp(3rem, 7vw, 6.2rem);
+    line-height: .98;
+    letter-spacing: -.03em;
+    color: var(--text-0);
+    margin: 0 0 8px;
+    font-weight: 700;
+  }
+  .hero h1 .accent { color: var(--cyan); font-style: italic; }
+  .hero .sub {
+    font-size: 1.2rem; color: var(--text-2);
+    max-width: 720px; margin: 22px 0 50px;
+    line-height: 1.5;
+  }
+  .hero .meta {
+    display: flex; gap: 28px; align-items: center;
+    color: var(--text-3); font-size: 13px; letter-spacing: .5px;
+  }
+  .hero .meta strong { color: var(--text-1); font-weight: 600; }
+  .hero .nav-hint {
+    position: absolute;
+    bottom: 100px; left: 64px;
+    display: flex; align-items: center; gap: 10px;
+    color: var(--text-3); font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+  }
+  .hero .nav-hint .line {
+    width: 40px; height: 1px; background: var(--text-3);
+    position: relative; overflow: hidden;
+  }
+  .hero .nav-hint .line::after {
+    content: ""; position: absolute; left: -40px; top: 0; height: 100%; width: 40px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    animation: shimmer 2.2s infinite;
+  }
+  @keyframes shimmer { to { left: 100%; } }
+  @media (max-width: 720px) { .hero .nav-hint { left: 22px; } }
+
+  /* ------- Avoid list (page 2) ------- */
+  .avoid-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    max-width: 880px;
+    padding: 22px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background: linear-gradient(180deg, rgba(248,81,73,.04), rgba(248,81,73,.01));
+  }
+  .avoid-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px;
+    background: var(--bg-1);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--r-md);
+  }
+  .avoid-item .icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: grid; place-items: center;
+    background: rgba(248,81,73,.10); color: var(--red);
+    flex-shrink: 0;
+  }
+  .avoid-item .label { color: var(--text-0); font-weight: 500; }
+  @media (max-width: 720px) { .avoid-grid { grid-template-columns: 1fr; } }
+
+  /* ------- 4-column KPI categories (page 3) ------- */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+  }
+  .kpi-card {
+    background: linear-gradient(180deg, var(--bg-2), var(--bg-1));
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 28px 24px;
+    transition: transform .25s, border-color .25s, box-shadow .25s;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card:hover { transform: translateY(-4px); border-color: var(--cyan); box-shadow: var(--shadow); }
+  .kpi-card .ic {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--cyan), var(--violet));
+    display: grid; place-items: center;
+    margin-bottom: 18px;
+    color: white;
+  }
+  .kpi-card h3 {
+    color: var(--cyan); margin: 0 0 6px; font-size: 1.25rem; font-weight: 700;
+  }
+  .kpi-card .q { color: var(--text-1); font-size: .95rem; margin: 0 0 16px; }
+  .kpi-card ul { list-style: none; padding: 0; margin: 0; }
+  .kpi-card li {
+    color: var(--text-2); padding: 6px 0 6px 16px; position: relative; font-size: .92rem;
+  }
+  .kpi-card li::before {
+    content: "•"; position: absolute; left: 0; color: var(--cyan);
+  }
+  @media (max-width: 1080px) { .kpi-grid { grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 620px)  { .kpi-grid { grid-template-columns: 1fr; } }
+
+  /* ------- GitHub tracks (page 6) ------- */
+  .gh-grid {
+    display: grid; grid-template-columns: 1.4fr 1fr;
+    gap: 24px; align-items: stretch;
+  }
+  .gh-rows { display: flex; flex-direction: column; gap: 16px; }
+  .gh-row {
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background: var(--bg-1);
+    padding: 22px 24px;
+    position: relative;
+  }
+  .gh-row .top { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+  .gh-row .ic {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: grid; place-items: center; flex-shrink: 0;
+    color: white;
+  }
+  .gh-row h3 { margin: 0; color: var(--text-0); font-weight: 700; font-size: 1.2rem; }
+  .gh-row p { margin: 0 0 14px; color: var(--text-2); font-size: .92rem; }
+  .gh-row .tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .gh-row .tags span {
+    font-size: .82rem; padding: 4px 12px;
+    border: 1px solid var(--border); border-radius: 999px;
+    color: var(--text-1); background: var(--bg-2);
+  }
+  .gh-row.happiness .ic { background: linear-gradient(135deg, #1f6feb, #58a6ff); }
+  .gh-row.happiness h3, .gh-row.happiness .tags span { color: var(--cyan-soft); border-color: rgba(58,175,255,.4); }
+  .gh-row.quality .ic { background: linear-gradient(135deg, #6e40c9, #b392f0); }
+  .gh-row.quality h3, .gh-row.quality .tags span { color: var(--purple); border-color: rgba(179,146,240,.4); }
+  .gh-row.velocity .ic { background: linear-gradient(135deg, #db6d28, #f0a3b7); }
+  .gh-row.velocity h3, .gh-row.velocity .tags span { color: var(--pink); border-color: rgba(240,163,183,.4); }
+
+  .business {
+    border: 1px solid rgba(63,185,80,.4);
+    border-radius: var(--r-lg);
+    background: linear-gradient(160deg, rgba(63,185,80,.10), rgba(63,185,80,.02) 60%), var(--bg-1);
+    padding: 26px 26px 28px;
+    display: flex; flex-direction: column;
+  }
+  .business .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .business h3 { margin: 0; color: var(--text-0); font-size: 1.6rem; font-weight: 700; letter-spacing: -.01em; }
+  .business .badge {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(63,185,80,.15); border: 1px solid rgba(63,185,80,.5);
+    color: var(--green); display: grid; place-items: center;
+  }
+  .business p { margin: 0 0 18px; color: var(--text-2); font-size: .94rem; }
+  .business ul { list-style: none; padding: 0; margin: 0; }
+  .business li {
+    color: var(--text-1); padding: 12px 0; font-size: .95rem;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .business li:last-child { border-bottom: none; }
+  @media (max-width: 920px) { .gh-grid { grid-template-columns: 1fr; } }
+
+  /* ------- SCEEE metrics (pages 7 & 8) ------- */
+  .scece-list { display: flex; flex-direction: column; gap: 16px; }
+  .scece-row {
+    display: grid;
+    grid-template-columns: 50px 220px 1fr;
+    align-items: center;
+    gap: 22px;
+    padding: 22px 26px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background: var(--bg-1);
+    transition: border-color .2s, transform .2s;
+  }
+  .scece-row:hover { border-color: var(--cyan); transform: translateX(4px); }
+  .scece-row .letter {
+    width: 50px; height: 50px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 1.2rem; color: #07090f;
+    flex-shrink: 0;
+  }
+  .scece-row .pill {
+    padding: 10px 18px;
+    border-radius: 999px;
+    text-align: center;
+    font-weight: 700; font-size: .95rem;
+    color: white;
+  }
+  .scece-row .body { color: var(--text-1); font-size: .98rem; line-height: 1.55; }
+  .scece-row .body .stat {
+    color: var(--purple); font-weight: 700;
+  }
+  .scece-row.S .letter, .scece-row.S .pill { background: #59f0d0; }
+  .scece-row.S .pill { background: linear-gradient(90deg, #1f6feb, #58a6ff); color: white; }
+  .scece-row.C .letter { background: var(--pink); }
+  .scece-row.C .pill   { background: linear-gradient(90deg, #1f6feb, #58a6ff); color: white; }
+  .scece-row.E1 .letter, .scece-row.E2 .letter, .scece-row.E3 .letter { background: #c8b6ff; }
+  .scece-row.E1 .pill { background: linear-gradient(90deg, #58a6ff, #79c0ff); color: white; }
+  .scece-row.E2 .pill { background: linear-gradient(90deg, #6e40c9, #b392f0); color: white; }
+  .scece-row.E3 .pill { background: linear-gradient(90deg, #6e40c9, #b392f0); color: white; }
+  @media (max-width: 720px) {
+    .scece-row { grid-template-columns: 1fr; text-align: left; gap: 12px; }
+    .scece-row .pill { justify-self: start; }
+  }
+
+  /* ------- SPACE intro (page 9) ------- */
+  .space-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center;
+  }
+  .space-grid .left .deck { font-size: 1.1rem; }
+  .space-letters { display: flex; flex-direction: column; gap: 14px; }
+  .space-letter {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    align-items: center;
+    gap: 22px;
+    padding: 12px 14px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--r-md);
+    background: var(--bg-1);
+  }
+  .space-letter .box {
+    width: 64px; height: 64px; border-radius: 10px;
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 2.2rem; color: #0a0e1a;
+    font-family: 'Source Serif 4', Georgia, serif;
+  }
+  .space-letter .desc { color: var(--text-0); font-size: 1.05rem; font-weight: 500; }
+  .space-letter.S .box { background: #80f5d4; }
+  .space-letter.P .box { background: #e3f08c; }
+  .space-letter.A .box { background: #f0c987; }
+  .space-letter.C .box { background: #f4adc3; }
+  .space-letter.E .box { background: #c5b3ff; }
+  @media (max-width: 820px) { .space-grid { grid-template-columns: 1fr; } }
+
+  /* ------- SPACE in action table (page 10) ------- */
+  .table-wrap {
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    background: var(--bg-1);
+    overflow-x: auto;
+  }
+  table.space {
+    width: 100%; border-collapse: collapse; min-width: 980px;
+    font-size: .9rem;
+  }
+  table.space th, table.space td {
+    padding: 14px 16px; vertical-align: top;
+    border-bottom: 1px solid var(--border-soft);
+    border-right: 1px solid var(--border-soft);
+  }
+  table.space th:last-child, table.space td:last-child { border-right: none; }
+  table.space tr:last-child td { border-bottom: none; }
+  table.space thead th {
+    background: var(--bg-2);
+    color: var(--text-0); text-align: left;
+    font-weight: 700;
+  }
+  table.space thead th .sub {
+    display: block; font-weight: 400; color: var(--text-2);
+    font-size: .82rem; margin-top: 4px;
+  }
+  table.space thead th.S { background: linear-gradient(180deg, rgba(89,240,208,.18), transparent), var(--bg-2); }
+  table.space thead th.P { background: linear-gradient(180deg, rgba(227,240,140,.18), transparent), var(--bg-2); }
+  table.space thead th.A { background: linear-gradient(180deg, rgba(240,201,135,.18), transparent), var(--bg-2); }
+  table.space thead th.C { background: linear-gradient(180deg, rgba(244,173,195,.18), transparent), var(--bg-2); }
+  table.space thead th.E { background: linear-gradient(180deg, rgba(197,179,255,.18), transparent), var(--bg-2); }
+  table.space tbody th {
+    background: var(--bg-2);
+    text-align: left; color: var(--text-0); font-weight: 700;
+    width: 140px;
+  }
+  table.space tbody th .sub {
+    display: block; font-weight: 400; color: var(--text-2);
+    font-size: .82rem; margin-top: 4px;
+  }
+  table.space ul { list-style: none; padding: 0; margin: 0; }
+  table.space li { padding: 3px 0 3px 14px; position: relative; color: var(--text-1); }
+  table.space li::before { content: "—"; position: absolute; left: 0; color: var(--text-3); }
+
+  .table-footnote {
+    color: var(--text-3); font-size: .82rem; font-style: italic; margin-top: 14px;
+  }
+
+  /* ------- Utility ------- */
+  .accent-line {
+    height: 2px; width: 64px;
+    background: linear-gradient(90deg, var(--cyan), transparent);
+    margin-bottom: 22px;
+  }
+
+  /* Staggered entrance animations for child elements */
+  .slide.active .anim-child {
+    animation: fadeUp .5s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .slide.active .anim-child:nth-child(1) { animation-delay: .05s; }
+  .slide.active .anim-child:nth-child(2) { animation-delay: .12s; }
+  .slide.active .anim-child:nth-child(3) { animation-delay: .19s; }
+  .slide.active .anim-child:nth-child(4) { animation-delay: .26s; }
+  .slide.active .anim-child:nth-child(5) { animation-delay: .33s; }
+  .slide.active .anim-child:nth-child(6) { animation-delay: .40s; }
+  .slide.active .anim-child:nth-child(7) { animation-delay: .47s; }
+  .slide.active .anim-child:nth-child(8) { animation-delay: .54s; }
+  .slide.active .anim-child:nth-child(9) { animation-delay: .61s; }
+
+  /* Keyboard shortcut hint */
+  .key-hint {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 1px;
+    z-index: 200;
+    opacity: 1;
+    transition: opacity 1s ease 3s;
+  }
+  .key-hint.fade { opacity: 0; }
+  kbd {
+    display: inline-block;
+    padding: 2px 8px;
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+    font-size: 11px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-2);
+  }
+
+  /* ------- References (page 12) ------- */
+  .ref-list { display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
+  .ref-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 20px;
+    padding: 18px 24px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--bg-1);
+    text-decoration: none;
+    transition: transform .2s, border-color .2s, box-shadow .2s;
+  }
+  .ref-item:hover { transform: translateX(4px); border-color: var(--cyan); box-shadow: var(--shadow); }
+  .ref-item .ref-text { display: flex; flex-direction: column; gap: 4px; }
+  .ref-item .ref-title { color: var(--text-0); font-weight: 600; font-size: 1.05rem; }
+  .ref-item .ref-source { color: var(--text-3); font-size: .82rem; }
+  .ref-item .ref-arrow { color: var(--text-2); flex-shrink: 0; width: 20px; height: 20px; transition: transform .2s, color .2s; }
+  .ref-item:hover .ref-arrow { color: var(--cyan); transform: translate(2px, -2px); }
+
+  /* ------- Image slide frames ------- */
+  .img-frame {
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    background: var(--bg-1);
+    box-shadow: var(--shadow);
+    max-width: 100%;
+  }
+  .img-frame img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="brand">
+    <a class="brand-link" href="javascript:void(0)" id="brandLink" aria-label="Back to first slide">
+      <span class="dot"></span>
+      <span>Copilot KPIs</span>
+    </a>
+    <span style="color: var(--text-3); font-weight: 400; margin-left: 8px;">/ Measuring what matters</span>
+  </div>
+  <div class="links" id="navLinks">
+    <a data-page="1">Avoid</a>
+    <a data-page="2">Categories</a>
+    <a data-page="3">GitHub</a>
+    <a data-page="4">EngThrive</a>
+    <a data-page="6">SPACE</a>
+    <a data-page="8">Dashboards</a>
+  </div>
+  <div class="nav-actions">
+    <a class="download-link" href="https://github.com/Lantern-Cloud-Services/Pres-GHCP_KPIs" target="_blank" rel="noopener noreferrer">
+      <svg viewBox="0 0 16 16"><path d="M7.47 10.78a.75.75 0 0 0 1.06 0l3.25-3.25a.75.75 0 0 0-1.06-1.06L8.75 8.44V1.75a.75.75 0 0 0-1.5 0v6.69L5.28 6.47a.75.75 0 0 0-1.06 1.06l3.25 3.25zM3.5 12.25a.75.75 0 0 0-1.5 0v1c0 .966.784 1.75 1.75 1.75h8.5A1.75 1.75 0 0 0 14 13.25v-1a.75.75 0 0 0-1.5 0v1a.25.25 0 0 1-.25.25h-8.5a.25.25 0 0 1-.25-.25v-1z"/></svg>
+      <span>Download</span>
+    </a>
+  </div>
+</nav>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+<div class="rail" id="rail"></div>
+
+<div class="slides-viewport">
+
+  <!-- ==================== SLIDE 1 — Title / Hero ==================== -->
+  <section class="slide hero active" data-slide="0">
+    <span class="page-num">01 / 12</span>
+    <span class="page-tag anim-child"><span class="dot"></span>A Field Guide</span>
+    <h1 class="anim-child">Stop measuring lines.<br /><span class="accent">Start measuring outcomes.</span></h1>
+    <p class="sub anim-child">A practical guide to the KPIs that actually reveal whether GitHub Copilot — and your engineering system — is making developers more effective.</p>
+    <div class="meta anim-child">
+      <span><strong>12 pages</strong></span>
+      <span>·</span>
+      <span>GitHub &amp; EngThrive metrics</span>
+      <span>·</span>
+      <span>SPACE framework · Live dashboards</span>
+    </div>
+    <div class="nav-hint anim-child">
+      <span>Use arrows to navigate</span>
+      <span class="line"></span>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 2 — Eliminate unhelpful KPIs ==================== -->
+  <section class="slide" data-slide="1">
+    <span class="page-num">02 / 12</span>
+    <span class="page-tag anim-child"><span class="dot" style="background: var(--red); box-shadow: 0 0 8px var(--red);"></span>What to avoid</span>
+    <h1 class="sans anim-child">Eliminate unhelpful KPIs.</h1>
+    <p class="deck anim-child" style="color: var(--cyan-soft);">Measure outcomes — not outputs.</p>
+
+    <div class="avoid-grid anim-child">
+      <div class="avoid-item"><span class="icon">✕</span><span class="label">Lines of code</span></div>
+      <div class="avoid-item"><span class="icon">✕</span><span class="label">Team capacity</span></div>
+      <div class="avoid-item"><span class="icon">✕</span><span class="label">Team burndown</span></div>
+      <div class="avoid-item"><span class="icon">✕</span><span class="label">Team velocity</span></div>
+      <div class="avoid-item"><span class="icon">✕</span><span class="label">% code coverage</span></div>
+      <div class="avoid-item"><span class="icon">✕</span><span class="label">Completed hours</span></div>
+      <div class="avoid-item"><span class="icon">✕</span><span class="label">Original estimate</span></div>
+      <div class="avoid-item"><span class="icon">✕</span><span class="label"># of bugs found</span></div>
+    </div>
+    <p class="anim-child" style="margin-top: 18px; color: var(--text-3); font-size: .82rem; font-style: italic;">
+      ⚠️ Engagement does not equal productivity.
+    </p>
+  </section>
+
+  <!-- ==================== SLIDE 3 — Metrics & KPIs (4 categories) ==================== -->
+  <section class="slide" data-slide="2">
+    <span class="page-num">03 / 12</span>
+    <span class="page-tag anim-child"><span class="dot"></span>The four lenses</span>
+    <h1 class="sans anim-child" style="text-align: center; margin-bottom: 36px;">Metrics &amp; KPIs</h1>
+
+    <div class="kpi-grid anim-child">
+      <div class="kpi-card">
+        <div class="ic">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+        </div>
+        <h3>Customer usage</h3>
+        <p class="q">How much value are users getting?</p>
+        <ul>
+          <li>Acquisition</li>
+          <li>Retention</li>
+          <li>Engagement</li>
+          <li>Satisfaction (NPS)</li>
+          <li>Feature usage</li>
+        </ul>
+      </div>
+
+      <div class="kpi-card">
+        <div class="ic" style="background: linear-gradient(135deg, #1f6feb, #b392f0);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M9 2h6"/></svg>
+        </div>
+        <h3>Pipeline throughput</h3>
+        <p class="q">How efficient is the DevOps process?</p>
+        <ul>
+          <li>Time to build</li>
+          <li>Time to test</li>
+          <li>Time to deploy</li>
+          <li>Time to improve</li>
+          <li>Failed and flakey automation</li>
+        </ul>
+      </div>
+
+      <div class="kpi-card">
+        <div class="ic" style="background: linear-gradient(135deg, #6e40c9, #f85149);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></svg>
+        </div>
+        <h3>Live-site health</h3>
+        <p class="q">How quickly can you detect and fix issues?</p>
+        <ul>
+          <li>Time to detect, communicate, mitigate</li>
+          <li>Customer impact &amp; support metrics</li>
+          <li>Incident prevention items</li>
+          <li>Aging live-site problems</li>
+          <li>SLA per customer</li>
+        </ul>
+      </div>
+
+      <div class="kpi-card">
+        <div class="ic" style="background: linear-gradient(135deg, #3fb950, #59f0d0);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <h3>Employee health</h3>
+        <p class="q">How can you understand how employees are doing?</p>
+        <ul>
+          <li>Monitor for burnout</li>
+          <li>Administer surveys to gather concerns</li>
+          <li>Track vacation time</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 4 — What metrics does GitHub track? ==================== -->
+  <section class="slide" data-slide="3">
+    <span class="page-num">04 / 12</span>
+    <span class="page-tag anim-child"><span class="dot"></span>GitHub's framework</span>
+    <h1 class="sans anim-child">What metrics does GitHub track?</h1>
+    <div class="accent-line anim-child"></div>
+
+    <div class="gh-grid anim-child">
+      <div class="gh-rows">
+        <div class="gh-row happiness">
+          <div class="top">
+            <div class="ic">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            </div>
+            <h3>Developer happiness</h3>
+          </div>
+          <p>Developers are enabled to do their best work and experience satisfaction.</p>
+          <div class="tags">
+            <span>Flow state experience</span>
+            <span>Engineering tooling satisfaction</span>
+            <span>Copilot satisfaction</span>
+          </div>
+        </div>
+
+        <div class="gh-row quality">
+          <div class="top">
+            <div class="ic">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <h3>Quality</h3>
+          </div>
+          <p>Ship secure, reliable, and easily maintainable code.</p>
+          <div class="tags">
+            <span>Change failure rate</span>
+            <span>Failed deployment recovery time</span>
+            <span>Code security and maintainability</span>
+          </div>
+        </div>
+
+        <div class="gh-row velocity">
+          <div class="top">
+            <div class="ic">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </div>
+            <h3>Velocity</h3>
+          </div>
+          <p>Ship regularly and at a pace that can help you meet business needs.</p>
+          <div class="tags">
+            <span>Lead time</span>
+            <span>Deployment frequency</span>
+            <span>PRs merged per developer</span>
+          </div>
+        </div>
+      </div>
+
+      <aside class="business">
+        <div class="top">
+          <h3>Business outcomes</h3>
+          <span class="badge">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          </span>
+        </div>
+        <p>Ship code that enables the business to innovate and meet their strategic objectives with increasing efficiency.</p>
+        <ul>
+          <li>AI leverage</li>
+          <li>Engineering expenses to revenue</li>
+          <li>Feature engineering expenses to total engineering expenses</li>
+        </ul>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 5 — EngThrive metrics ==================== -->
+  <section class="slide" data-slide="4">
+    <span class="page-num">05 / 12</span>
+    <span class="page-tag anim-child"><span class="dot"></span>Microsoft's DevEx initiative</span>
+    <h1 class="sans anim-child">What metrics does our DevEx initiative <span style="color: var(--cyan-soft);">(EngThrive)</span> track?</h1>
+    <div class="accent-line anim-child"></div>
+
+    <div class="scece-list anim-child">
+      <div class="scece-row S">
+        <div class="letter">S</div>
+        <div class="pill">ES Satisfaction (NSAT)</div>
+        <div class="body">A measure of satisfaction that developers have with, <em>"The engineering system you use at Microsoft."</em></div>
+      </div>
+      <div class="scece-row C">
+        <div class="letter">C</div>
+        <div class="pill">Code Review Dwell</div>
+        <div class="body">Capturing one aspect of collaboration, dwell is the delta between when one dev creates a Pull Request (PR) and another acts on it.</div>
+      </div>
+      <div class="scece-row E1">
+        <div class="letter">E</div>
+        <div class="pill">Time-To-First-PR</div>
+        <div class="body">The time between when a new hire starts at Microsoft and when they complete their first PR.</div>
+      </div>
+      <div class="scece-row E2">
+        <div class="letter">E</div>
+        <div class="pill">PR Completion Time</div>
+        <div class="body">The delta between when a PR is created and when it is successfully closed.</div>
+      </div>
+      <div class="scece-row E3">
+        <div class="letter">E</div>
+        <div class="pill">Uninterrupted Focus Time</div>
+        <div class="body">The amount of uninterrupted time a dev has for deep thinking and creative problem solving.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 6 — Why these metrics? ==================== -->
+  <section class="slide" data-slide="5">
+    <span class="page-num">06 / 12</span>
+    <span class="page-tag anim-child"><span class="dot"></span>The evidence behind them</span>
+    <h1 class="sans anim-child">Why did we choose these metrics?</h1>
+    <div class="accent-line anim-child"></div>
+
+    <div class="scece-list anim-child">
+      <div class="scece-row S">
+        <div class="letter">S</div>
+        <div class="pill">ES Satisfaction (NSAT)</div>
+        <div class="body"><span class="stat">Dissatisfied devs are 2× as likely to leave</span><sup style="color: var(--text-3);">1</sup>.</div>
+      </div>
+      <div class="scece-row C">
+        <div class="letter">C</div>
+        <div class="pill">Code Review Dwell</div>
+        <div class="body">Fast code reviews make devs feel <span class="stat">20% more innovative</span><sup style="color: var(--text-3);">2</sup>.</div>
+      </div>
+      <div class="scece-row E1">
+        <div class="letter">E</div>
+        <div class="pill">Time-To-First-PR</div>
+        <div class="body">Devs with a fast first PR onboard <span class="stat">17% faster</span> and have <span class="stat">15% longer retention</span><sup style="color: var(--text-3);">1</sup>.</div>
+      </div>
+      <div class="scece-row E2">
+        <div class="letter">E</div>
+        <div class="pill">PR Completion Time</div>
+        <div class="body">Fast PR completion loops lead to <span class="stat">10% higher total change throughput</span><sup style="color: var(--text-3);">1</sup>.</div>
+      </div>
+      <div class="scece-row E3">
+        <div class="letter">E</div>
+        <div class="pill">Uninterrupted Focus Time</div>
+        <div class="body">Devs with deep work time feel <span class="stat">50% more productive</span><sup style="color: var(--text-3);">2</sup>.</div>
+      </div>
+    </div>
+
+    <p class="anim-child" style="margin-top: 26px; color: var(--text-3); font-size: .82rem; font-style: italic;">
+      Source 1: Microsoft internal data &nbsp;·&nbsp; Source 2: Microsoft, GitHub, and DX, 2024
+    </p>
+  </section>
+
+  <!-- ==================== SLIDE 7 — SPACE framework intro ==================== -->
+  <section class="slide" data-slide="6">
+    <span class="page-num">07 / 12</span>
+    <span class="page-tag anim-child"><span class="dot"></span>SPACE framework</span>
+    <div class="space-grid anim-child">
+      <div class="left">
+        <h1 class="sans" style="color: var(--cyan-soft);">SPACE: A framework for understanding developer productivity</h1>
+        <p class="deck">The SPACE framework offers a new way of thinking about developer productivity.</p>
+      </div>
+      <div class="space-letters">
+        <div class="space-letter S"><div class="box">S</div><div class="desc">Satisfaction and well-being</div></div>
+        <div class="space-letter P"><div class="box">P</div><div class="desc">Performance</div></div>
+        <div class="space-letter A"><div class="box">A</div><div class="desc">Activity</div></div>
+        <div class="space-letter C"><div class="box">C</div><div class="desc">Communication and collaboration</div></div>
+        <div class="space-letter E"><div class="box">E</div><div class="desc">Efficiency and flow</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 8 — SPACE in action (table) ==================== -->
+  <section class="slide" data-slide="7">
+    <span class="page-num">08 / 12</span>
+    <span class="page-tag anim-child"><span class="dot"></span>Putting it together</span>
+    <h1 class="sans anim-child">SPACE framework in action</h1>
+    <div class="accent-line anim-child"></div>
+
+    <div class="table-wrap anim-child">
+      <table class="space">
+        <thead>
+          <tr>
+            <th>Level</th>
+            <th class="S">Satisfaction &amp; Well-being<span class="sub">How fulfilled, happy, and healthy one is</span></th>
+            <th class="P">Performance<span class="sub">An outcome of a process</span></th>
+            <th class="A">Activity<span class="sub">The count of actions or outputs</span></th>
+            <th class="C">Communication &amp; collaboration<span class="sub">How people talk and work together</span></th>
+            <th class="E">Efficiency &amp; flow<span class="sub">Doing work with minimal delays or interruptions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>Individual<span class="sub">One person</span></th>
+            <td>
+              <ul>
+                <li>Developer satisfaction</li>
+                <li>Retention*</li>
+                <li>Satisfaction with code reviews assigned</li>
+                <li>Perception of code reviews</li>
+              </ul>
+            </td>
+            <td>
+              <ul>
+                <li>Code review velocity</li>
+              </ul>
+            </td>
+            <td>
+              <ul>
+                <li>Number of code reviews completed</li>
+                <li>Coding time</li>
+                <li># commits</li>
+                <li>Lines of code*</li>
+              </ul>
+            </td>
+            <td>
+              <ul>
+                <li>Code review score (quality or thoughtfulness)</li>
+                <li>PR merge times</li>
+                <li>Quality of meetings*</li>
+                <li>Knowledge sharing, discoverability (quality of documentation)</li>
+              </ul>
+            </td>
+            <td>
+              <ul>
+                <li>Code review timing</li>
+                <li>Productivity perception</li>
+                <li>Lack of interruptions</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <th>Team or group<span class="sub">People that work together</span></th>
+            <td>
+              <ul>
+                <li>Developer satisfaction</li>
+                <li>Retention*</li>
+              </ul>
+            </td>
+            <td>
+              <ul>
+                <li>Code review velocity</li>
+                <li>Story points shipped*</li>
+              </ul>
+            </td>
+            <td>
+              <ul>
+                <li># story points completed*</li>
+              </ul>
+            </td>
+            <td>
+              <ul>
+                <li>PR merge times</li>
+                <li>Quality of meetings*</li>
+                <li>Knowledge sharing, discoverability (quality of documentation)</li>
+              </ul>
+            </td>
+            <td>
+              <ul>
+                <li>Code review timing</li>
+                <li>Handoffs</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <th>System<span class="sub">End-to-end work through a system (like a development pipeline)</span></th>
+            <td>
+              <ul>
+                <li>Satisfaction with engineering system (e.g., CI/CD pipeline)</li>
+              </ul>
+            </td>
+            <td>
+              <ul>
+                <li>Code review velocity</li>
+                <li>Code review (acceptance rate)</li>
+                <li>Customer satisfaction</li>
+                <li>Reliability (uptime)</li>
+              </ul>
+            </td>
+            <td>
+              <ul>
+                <li>Frequency of deployments</li>
+              </ul>
+            </td>
+            <td>
+              <ul>
+                <li>Knowledge sharing, discoverability (quality of documentation)</li>
+              </ul>
+            </td>
+            <td>
+              <ul>
+                <li>Code review timing</li>
+                <li>Velocity/flow through the system</li>
+              </ul>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-footnote anim-child">* Use these metrics with (even more) caution — they can proxy more things.</p>
+  </section>
+
+  <!-- ==================== SLIDE 9 — Dashboard Overview ==================== -->
+  <section class="slide" data-slide="8">
+    <span class="page-num">09 / 12</span>
+    <span class="page-tag anim-child"><span class="dot" style="background: var(--teal); box-shadow: 0 0 8px var(--teal);"></span>Dashboard example — Overview</span>
+    <h1 class="sans anim-child">Metrics dashboard: <span style="color: var(--teal);">at a glance</span></h1>
+    <p class="deck anim-child">A single-pane view mapping DORA-aligned categories — deployment frequency, lead time, change-failure rate, and review quality — to concrete KPIs with health indicators.</p>
+    <div class="img-frame anim-child">
+      <img src="./assets/overview.png" alt="Metrics dashboard overview showing deployment frequency, lead time for changes, change failure rate, and review quality metrics" />
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 10 — PR Summary ==================== -->
+  <section class="slide" data-slide="9">
+    <span class="page-num">10 / 12</span>
+    <span class="page-tag anim-child"><span class="dot" style="background: var(--green); box-shadow: 0 0 8px var(--green);"></span>Dashboard example — Pull Requests</span>
+    <h1 class="sans anim-child">Pull request <span style="color: var(--green-soft);">KPI summary</span></h1>
+    <p class="deck anim-child">Drill into PR health: status distribution, review-dwell time, completion time, and percentile benchmarks — the signals that connect developer activity to delivery outcomes.</p>
+    <div class="img-frame anim-child">
+      <img src="./assets/PR.png" alt="Pull request KPI summary showing status breakdown, review dwell hours, and completion time percentiles" />
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 11 — Leader Board ==================== -->
+  <section class="slide" data-slide="10">
+    <span class="page-num">11 / 12</span>
+    <span class="page-tag anim-child"><span class="dot" style="background: var(--gold); box-shadow: 0 0 8px var(--gold);"></span>Dashboard example — Leader Board</span>
+    <h1 class="sans anim-child">Copilot <span style="color: var(--gold);">leader board</span></h1>
+    <p class="deck anim-child">Top 25 users ranked by LOC acceptance rate, code acceptance rate, and interaction volume — useful for identifying champions and coaching opportunities, <em>not</em> individual performance reviews.</p>
+    <div class="img-frame anim-child">
+      <img src="./assets/leader.png" alt="Leader board showing top 25 Copilot users by acceptance rates and interactions" />
+    </div>
+    <p class="anim-child" style="margin-top: 18px; color: var(--text-3); font-size: .82rem; font-style: italic;">
+      ⚠️ Leaderboards should be used to celebrate adoption and identify mentors — never to rank or punish individual developers.
+    </p>
+  </section>
+
+  <!-- ==================== SLIDE 12 — References ==================== -->
+  <section class="slide" data-slide="11">
+    <span class="page-num">12 / 12</span>
+    <span class="page-tag anim-child"><span class="dot"></span>Further reading</span>
+    <h1 class="sans anim-child">References</h1>
+    <div class="accent-line anim-child"></div>
+
+    <div class="ref-list anim-child">
+      <a class="ref-item" href="https://assets.ctfassets.net/wfutmusr1t3h/59IWCIRvx0KfHbh6B7bv62/d9f55b94ab43fe91e9ed183d73882954/2025-05-28-GitHub-ESSP-Ebook-EZ-Version012.pdf" target="_blank" rel="noopener noreferrer">
+        <div class="ref-text">
+          <span class="ref-title">GitHub's Engineering Success Playbook</span>
+          <span class="ref-source">GitHub · PDF ebook</span>
+        </div>
+        <svg class="ref-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+      </a>
+      <a class="ref-item" href="https://queue.acm.org/detail.cfm?id=3454124" target="_blank" rel="noopener noreferrer">
+        <div class="ref-text">
+          <span class="ref-title">Space Metrics</span>
+          <span class="ref-source">ACM Queue</span>
+        </div>
+        <svg class="ref-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+      </a>
+      <a class="ref-item" href="https://queue.acm.org/detail.cfm?id=3595878" target="_blank" rel="noopener noreferrer">
+        <div class="ref-text">
+          <span class="ref-title">DevEx</span>
+          <span class="ref-source">ACM Queue</span>
+        </div>
+        <svg class="ref-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+      </a>
+      <a class="ref-item" href="https://getdx.com/research/measuring-developer-productivity-with-the-dx-core-4/" target="_blank" rel="noopener noreferrer">
+        <div class="ref-text">
+          <span class="ref-title">DX Core 4</span>
+          <span class="ref-source">getdx.com · Research</span>
+        </div>
+        <svg class="ref-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+      </a>
+      <a class="ref-item" href="https://dora.dev/" target="_blank" rel="noopener noreferrer">
+        <div class="ref-text">
+          <span class="ref-title">DORA</span>
+          <span class="ref-source">dora.dev</span>
+        </div>
+        <svg class="ref-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+      </a>
+    </div>
+  </section>
+
+</div>
+
+<!-- Arrow navigation -->
+<div class="arrow-nav">
+  <button class="arrow-btn" id="prevBtn" disabled aria-label="Previous slide">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <span class="page-indicator" id="pageIndicator">1 / 12</span>
+  <button class="arrow-btn" id="nextBtn" aria-label="Next slide">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+</div>
+
+<span class="key-hint" id="keyHint">Navigate with <kbd>←</kbd> <kbd>→</kbd> arrow keys</span>
+
+<script>
+(function () {
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  let current = 0;
+  let transitioning = false;
+
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const indicator = document.getElementById('pageIndicator');
+  const progressFill = document.getElementById('progressFill');
+  const keyHint = document.getElementById('keyHint');
+
+  // Build side rail
+  const titles = ['Title','Avoid','Categories','GitHub tracks','EngThrive','Why these?','SPACE','In action','Dashboard','PR Summary','Leader Board','References'];
+  const rail = document.getElementById('rail');
+  titles.forEach((label, i) => {
+    const a = document.createElement('a');
+    a.dataset.idx = i;
+    a.dataset.label = label;
+    if (i === 0) a.classList.add('active');
+    a.addEventListener('click', () => goTo(i));
+    rail.appendChild(a);
+  });
+  const railDots = Array.from(rail.querySelectorAll('a'));
+
+  // Nav links
+  const navLinks = document.querySelectorAll('#navLinks a');
+  navLinks.forEach(a => {
+    a.addEventListener('click', () => {
+      const pg = parseInt(a.dataset.page, 10);
+      goTo(pg);
+    });
+  });
+
+  // Brand — link back to the first slide
+  const brandLink = document.getElementById('brandLink');
+  if (brandLink) brandLink.addEventListener('click', () => goTo(0));
+
+  function updateUI() {
+    indicator.textContent = (current + 1) + ' / ' + total;
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === total - 1;
+    progressFill.style.width = ((current + 1) / total * 100) + '%';
+    railDots.forEach((d, i) => d.classList.toggle('active', i === current));
+
+    // Update nav link active states
+    navLinks.forEach(a => {
+      const pg = parseInt(a.dataset.page, 10);
+      a.classList.toggle('active', pg === current);
+    });
+  }
+
+  function goTo(idx) {
+    if (idx === current || idx < 0 || idx >= total || transitioning) return;
+    transitioning = true;
+    const goingForward = idx > current;
+
+    // Remove active/exit classes from all slides
+    slides.forEach(s => {
+      s.classList.remove('active', 'exit-left');
+    });
+
+    // Exit current slide
+    if (goingForward) {
+      slides[current].classList.add('exit-left');
+    }
+
+    // Enter new slide
+    if (!goingForward) {
+      // Coming from a later slide, prepare it off-screen left then bring in
+      slides[idx].style.transform = 'translateX(-60px)';
+      slides[idx].offsetHeight; // force reflow
+      slides[idx].style.transform = '';
+    }
+    slides[idx].classList.add('active');
+
+    current = idx;
+    updateUI();
+
+    setTimeout(() => { transitioning = false; }, 460);
+  }
+
+  function next() { goTo(current + 1); }
+  function prev() { goTo(current - 1); }
+
+  prevBtn.addEventListener('click', prev);
+  nextBtn.addEventListener('click', next);
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp')    { e.preventDefault(); prev(); }
+    if (e.key === 'Home')  { e.preventDefault(); goTo(0); }
+    if (e.key === 'End')   { e.preventDefault(); goTo(total - 1); }
+  });
+
+  // Fade keyboard hint after first interaction
+  let hintFaded = false;
+  function fadeHint() {
+    if (!hintFaded) { keyHint.classList.add('fade'); hintFaded = true; }
+  }
+  document.addEventListener('keydown', fadeHint, { once: true });
+  prevBtn.addEventListener('click', fadeHint, { once: true });
+  nextBtn.addEventListener('click', fadeHint, { once: true });
+
+  updateUI();
+})();
+</script>
+
+</body>
+</html>
