@@ -33,7 +33,7 @@ removes `README.md` files and any internal-only decks, and deploys.
 
 1. Add a folder under `presentations/` containing the deck's HTML and assets. Decks should be
    self-contained and use relative links. No per-presentation `.github/` workflow is needed.
-2. In `index.html`, copy an existing `<article class="tile">` block and update the title, date,
+2. In `index.html`, copy an existing `<article class="tile">` block and update the title,
    description, tags and links (relative paths such as `presentations/<name>/deck.html`).
 3. Add a row to the [Presentations](#presentations) table above.
 4. Open `index.html` in a browser to check the tile and links, then push to `main` to publish.
