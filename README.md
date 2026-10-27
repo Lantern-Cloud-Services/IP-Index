@@ -8,38 +8,24 @@ It is also deployed to GitHub Pages: the landing page is a tile index of every p
 ## Site structure
 
 ```
-.github/workflows/deploy-pages.yml   # builds and deploys the whole site on push to main
-scripts/build_site.py                # generates _site/ (landing page + copied presentations)
-site/index.template.html             # landing page template ({{TILES}}, {{COUNT}})
-presentations/<name>/                # one folder per presentation -> /presentations/<name>/
-presentations/<name>/presentation.json  # optional tile metadata
+index.html                           # landing page (open directly in a browser, or via GitHub Pages)
+presentations/<name>/                # one folder per presentation, linked from a tile in index.html
+.github/workflows/deploy-pages.yml   # publishes index.html + presentations/ to Pages on push to main
 ```
+
+There is no build step: `index.html` is a plain static page with relative links, so it works the
+same when opened from disk as it does on GitHub Pages.
 
 ### Adding a presentation
 
 1. Add a folder under `presentations/` containing the deck's HTML and assets (no per-presentation
    `.github/` workflow is needed).
-2. Add a `presentation.json` describing the tile:
+2. In `index.html`, copy an existing `<article class="tile">` block and update the title, date,
+   description, tags and links (relative paths such as `presentations/<name>/deck.html`).
+3. Open `index.html` in a browser to check it.
 
-   ```json
-   {
-     "title": "Deck title",
-     "audience": "Customer / event",
-     "date": "YYYY-MM-DD",
-     "description": "Short summary shown on the tile",
-     "tags": ["optional", "labels"],
-     "decks": [{ "label": "Presentation", "path": "deck.html" }],
-     "exclude": ["internal-only.html"]
-   }
-   ```
-
-   The first entry in `decks` is the tile's main link; extra entries show as secondary links.
-   Files in `exclude`, dot-files, `README.md` and `presentation.json` are not published.
-   Without `presentation.json`, the folder name is used as the title and the tile links to `index.html`.
-3. Preview locally: `python scripts/build_site.py && python -m http.server 8000 -d _site`.
-
-Tiles are sorted newest-first by `date`. The build fails if a deck path is missing or excluded.
-
+`README.md` files are not published. To keep an internal-only deck out of Pages, add an `rm` line
+for it in the workflow's "Prepare site" step.
 ## Entries
 
 ### 07/02/2026 - Hannover - Copilot Best Champions

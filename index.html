@@ -59,16 +59,28 @@
     <p>Customer deliveries and live presentation content from Lantern Cloud Services.</p>
     <div class="toolbar">
       <input id="search" type="search" placeholder="Filter presentations&hellip;" aria-label="Filter presentations" />
-      <span class="count" id="count">{{COUNT}} presentation(s)</span>
+      <span class="count" id="count"></span>
     </div>
   </header>
-  <main id="tiles">{{TILES}}
+  <main id="tiles">
+    <!-- One <article class="tile"> per presentation. Copy a tile to add a new one; links are relative to this file. -->
+      <article class="tile" data-search="copilot champions deep dive hannover - copilot best champions using github copilot effectively in brownfield codebases: context-building, agent configuration, agentic primitives, and iteration patterns. github copilot copilot cli agentic workflows">
+        <a class="tile-main" href="presentations/Pres-GHCP_champions_brownfield_primitives_iterations/ghcp_champions_cli.html">
+          <p class="meta">2026-07-02 &middot; Hannover - Copilot Best Champions</p>
+          <h2>Copilot Champions Deep Dive</h2>
+          <p class="desc">Using GitHub Copilot effectively in brownfield codebases: context-building, agent configuration, agentic primitives, and iteration patterns.</p>
+          <div class="tags"><span class="tag">GitHub Copilot</span><span class="tag">Copilot CLI</span><span class="tag">Agentic workflows</span></div>
+          <span class="cta">Presentation &rarr;</span>
+        </a>
+        <div class="links"><a class="secondary" href="presentations/Pres-GHCP_champions_brownfield_primitives_iterations/assets/copilot-models-cli.html">Copilot models reference</a></div>
+      </article>
   </main>
   <footer>Lantern Cloud Services</footer>
   <script>
     const search = document.getElementById("search");
     const tiles = [...document.querySelectorAll(".tile")];
     const count = document.getElementById("count");
+    count.textContent = `${tiles.length} presentation(s)`;
     search.addEventListener("input", () => {
       const q = search.value.trim().toLowerCase();
       let shown = 0;
