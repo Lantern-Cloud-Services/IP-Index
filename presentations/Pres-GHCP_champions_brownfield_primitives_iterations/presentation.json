@@ -1,0 +1,12 @@
+{
+  "title": "Copilot Champions Deep Dive",
+  "audience": "Hannover - Copilot Best Champions",
+  "date": "2026-07-02",
+  "description": "Using GitHub Copilot effectively in brownfield codebases: context-building, agent configuration, agentic primitives, and iteration patterns.",
+  "tags": ["GitHub Copilot", "Copilot CLI", "Agentic workflows"],
+  "decks": [
+    { "label": "Presentation", "path": "ghcp_champions_cli.html" },
+    { "label": "Copilot models reference", "path": "assets/copilot-models-cli.html" }
+  ],
+  "exclude": ["ghcp_champions_internal.html"]
+}

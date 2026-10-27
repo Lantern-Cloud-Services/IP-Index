@@ -1,0 +1,1953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Copilot Champions Deep Dive — V2</title>
+<script>
+  (() => {
+    const param = new URLSearchParams(window.location.search).get("scoutTheme");
+    const theme =
+      param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
+<style>
+  :root {
+    color-scheme: light;
+    --cp-bg: #f7f4ef;
+    --cp-bg-elevated: #fcfbf8;
+    --cp-surface: #ffffff;
+    --cp-surface-soft: #f5f5f5;
+    --cp-border: #dedede;
+    --cp-border-strong: #919191;
+    --cp-text: #242424;
+    --cp-text-muted: #5c5c5c;
+    --cp-text-soft: #6f6f6f;
+    --cp-accent: #b11f4b;
+    --cp-accent-hover: #9a1a41;
+    --cp-accent-soft: rgba(177, 31, 75, 0.08);
+    --cp-accent-fg: #ffffff;
+    --cp-success: #16a34a;
+    --cp-danger: #dc2626;
+    --cp-warning: #f59e0b;
+    --cp-link: #0078d4;
+    --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+    --cp-overlay: rgba(255, 255, 255, 0.8);
+    --cp-panel: rgba(255, 255, 255, 0.86);
+    --cp-panel-strong: rgba(255, 255, 255, 0.96);
+    --cp-sheen: rgba(255, 255, 255, 0.55);
+    --cp-highlight: rgba(177, 31, 75, 0.12);
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --cp-bg: #3d3b3a;
+    --cp-bg-elevated: #343231;
+    --cp-surface: #292929;
+    --cp-surface-soft: #2e2e2e;
+    --cp-border: #474747;
+    --cp-border-strong: #5f5f5f;
+    --cp-text: #dedede;
+    --cp-text-muted: #919191;
+    --cp-text-soft: #b0b0b0;
+    --cp-accent: #fd8ea1;
+    --cp-accent-hover: #fb7b91;
+    --cp-accent-soft: rgba(253, 142, 161, 0.14);
+    --cp-accent-fg: #1a1a1a;
+    --cp-success: #4ade80;
+    --cp-danger: #f87171;
+    --cp-warning: #fbbf24;
+    --cp-link: #4da6ff;
+    --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+    --cp-overlay: rgba(41, 41, 41, 0.88);
+    --cp-panel: rgba(41, 41, 41, 0.72);
+    --cp-panel-strong: rgba(41, 41, 41, 0.96);
+    --cp-sheen: rgba(255, 255, 255, 0.04);
+    --cp-highlight: rgba(253, 142, 161, 0.12);
+  }
+
+  /* ── Presentation Design Tokens (v2) ──────────── */
+  :root {
+    --bg-0: #030409;
+    --bg-1: #080a11;
+    --bg-2: #0d111b;
+    --bg-3: #131a28;
+    --border: #202a42;
+    --border-soft: #141c2d;
+    --text-0: #f6f8fd;
+    --text-1: #ccd4e6;
+    --text-2: #8891a9;
+    --text-3: #57607a;
+    --cyan: #3fbcff;
+    --cyan-soft: #83d2ff;
+    --green: #3fb950;
+    --green-soft: #7ee787;
+    --red: #f85149;
+    --purple: #b392f0;
+    --violet: #8b6fef;
+    --pink: #f0a3b7;
+    --teal: #59f0d0;
+    --gold: #e3b341;
+    --orange: #e97132;
+
+    /* Section identity colors — map 1:1 to the 3 agenda sections */
+    --sec-1: var(--cyan);      /* Brownfield Modernization */
+    --sec-2: var(--green);     /* Custom Instructions & Agent files */
+    --sec-3: var(--purple);    /* Iteration Patterns & Best Practices */
+
+    --ease: cubic-bezier(.22,.9,.32,1);
+    --dur-fast: .18s;
+    --dur-med: .4s;
+    --dur-slow: .7s;
+
+    --shadow-sm: 0 2px 10px rgba(0,0,0,.35);
+    --shadow: 0 14px 50px rgba(0,0,0,.55);
+    --shadow-lg: 0 24px 80px rgba(0,0,0,.65);
+    --glow-cyan: 0 0 0 1px rgba(63,188,255,.4), 0 0 32px rgba(63,188,255,.18);
+    --focus-ring: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--cyan-soft);
+
+    --r-lg: 18px;
+    --r-md: 12px;
+    --r-sm: 8px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root { --dur-fast: 0.001s; --dur-med: 0.001s; --dur-slow: 0.001s; }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%; overflow: hidden;
+    font-family: 'Segoe UI', Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-0);
+    color: var(--text-1);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection { background: rgba(63,188,255,.28); color: var(--text-0); }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+    border-radius: var(--r-sm);
+  }
+
+  .skip-link {
+    position: fixed; top: -60px; left: 12px; z-index: 1000;
+    background: var(--cyan); color: var(--bg-0);
+    padding: 10px 18px; border-radius: var(--r-sm);
+    font-weight: 700; font-size: .85rem; text-decoration: none;
+    transition: top var(--dur-fast) var(--ease);
+  }
+  .skip-link:focus { top: 12px; }
+
+  body::before {
+    content: "";
+    position: fixed; inset: -10%;
+    background:
+      radial-gradient(1000px 640px at 88% -8%, rgba(63,188,255,.10), transparent 60%),
+      radial-gradient(760px 540px at -8% 28%, rgba(179,146,240,.075), transparent 60%),
+      radial-gradient(840px 620px at 46% 118%, rgba(63,185,80,.06), transparent 60%),
+      radial-gradient(600px 460px at 60% 45%, rgba(89,240,208,.035), transparent 65%);
+    pointer-events: none; z-index: 0;
+    animation: auroraDrift 26s ease-in-out infinite alternate;
+    will-change: transform, opacity;
+  }
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(1200px 800px at 50% 30%, #000 0%, transparent 75%);
+    pointer-events: none; z-index: 0; opacity: .5;
+  }
+  @keyframes auroraDrift {
+    0%   { transform: translate3d(0,0,0) scale(1); opacity: .9; }
+    50%  { transform: translate3d(-1.5%, 1%, 0) scale(1.03); opacity: 1; }
+    100% { transform: translate3d(1.5%, -1%, 0) scale(1.05); opacity: .85; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    body::before { animation: none; }
+  }
+
+  /* ── Top nav bar ────────────────────────────────── */
+  .topnav {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between; gap: 18px;
+    padding: 13px 32px;
+    background: rgba(3,4,9,.72);
+    backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3);
+    border-bottom: 1px solid var(--border-soft);
+    z-index: 100;
+  }
+  .topnav .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 600; color: var(--text-0); letter-spacing: .2px; font-size: 14px;
+    border-radius: var(--r-sm);
+  }
+  .topnav .brand .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green); box-shadow: 0 0 12px var(--green);
+  }
+  .topnav .brand svg { width: 22px; height: 22px; fill: var(--text-0); margin-right: 2px; }
+  .topnav .brand-group { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+  .topnav .nav-actions { display: flex; align-items: center; gap: 8px; }
+  .topnav .download-link {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-weight: 600; font-size: 13px; letter-spacing: .2px;
+    color: var(--text-0); text-decoration: none;
+    padding: 7px 14px; border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-2);
+    transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  }
+  .topnav .download-link:hover {
+    color: var(--cyan); border-color: var(--cyan);
+    background: rgba(63,188,255,.08);
+    transform: translateY(-1px);
+  }
+  .topnav .download-link svg { width: 15px; height: 15px; fill: currentColor; }
+
+  /* ── Progress bar (section-segmented) ───────────── */
+  .progress-bar {
+    position: fixed; top: 52px; left: 0; right: 0;
+    height: 4px; display: flex; gap: 3px; padding: 0 3px;
+    z-index: 99; background: transparent;
+  }
+  .progress-seg {
+    flex: var(--seg-weight, 1);
+    background: var(--bg-2); border-radius: 3px; overflow: hidden;
+    box-shadow: inset 0 0 0 1px var(--border-soft);
+  }
+  .progress-seg-fill {
+    height: 100%; width: 0%; border-radius: 3px;
+    background: linear-gradient(90deg, var(--seg-color, var(--cyan)), var(--seg-color-soft, var(--violet)));
+    transition: width var(--dur-med) var(--ease);
+  }
+  .progress-seg[data-section="1"] { --seg-color: var(--sec-1); --seg-color-soft: var(--cyan-soft); }
+  .progress-seg[data-section="2"] { --seg-color: var(--sec-2); --seg-color-soft: var(--green-soft); }
+  .progress-seg[data-section="3"] { --seg-color: var(--sec-3); --seg-color-soft: var(--violet); }
+
+  /* ── Side rail dots ─────────────────────────────── */
+  .rail {
+    position: fixed; right: 22px; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 9px; z-index: 90;
+  }
+  .rail .rail-sep {
+    width: 14px; height: 1px; background: var(--border);
+    margin: 3px 0;
+  }
+  .rail a {
+    display: block; width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.15);
+    transition: all var(--dur-fast) var(--ease); cursor: pointer; position: relative;
+  }
+  .rail a:hover { background: var(--dot-color, var(--cyan)); border-color: var(--dot-color, var(--cyan)); transform: scale(1.25); }
+  .rail a.active {
+    background: var(--dot-color, var(--cyan)); border-color: var(--dot-color, var(--cyan));
+    box-shadow: 0 0 10px var(--dot-color, var(--cyan));
+    transform: scale(1.15);
+  }
+  .rail a::before {
+    content: attr(data-label);
+    position: absolute; right: 22px; top: 50%; transform: translateY(-50%);
+    white-space: nowrap; font-size: 11px; color: var(--text-2);
+    background: var(--bg-2); border: 1px solid var(--border);
+    padding: 4px 8px; border-radius: 6px;
+    opacity: 0; pointer-events: none; transition: opacity var(--dur-fast) var(--ease);
+  }
+  .rail a:hover::before { opacity: 1; }
+  @media (max-width: 900px) { .rail { display: none; } }
+
+  /* ── Slide container ────────────────────────────── */
+  .slides-viewport { position: fixed; inset: 0; z-index: 1; }
+
+  .slide {
+    position: absolute; inset: 0;
+    padding: 96px 64px 84px;
+    display: flex; flex-direction: column;
+    justify-content: flex-start;
+    overflow-y: auto;
+    opacity: 0;
+    transform: translateY(16px) scale(.98);
+    filter: blur(5px);
+    pointer-events: none;
+    transition: opacity var(--dur-med) var(--ease), transform var(--dur-med) var(--ease), filter var(--dur-med) var(--ease);
+    max-width: 1400px;
+    margin: 0 auto; left: 0; right: 0;
+  }
+  .slide.active { opacity: 1; transform: none; filter: blur(0); pointer-events: auto; }
+  .slide.exit-left { opacity: 0; transform: translateX(-36px) translateY(-8px) scale(.97); filter: blur(4px); }
+  .slide.exit-right { opacity: 0; transform: translateX(36px) translateY(-8px) scale(.97); filter: blur(4px); }
+  .slide.incoming-left { transform: translateX(-36px) scale(.98); filter: blur(4px); opacity: 0; }
+  .slide.incoming-right { transform: translateX(36px) scale(.98); filter: blur(4px); opacity: 0; }
+  @media (max-width: 720px) { .slide { padding: 78px 22px; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slide, .slide.active, .slide.exit-left, .slide.exit-right, .slide.incoming-left, .slide.incoming-right {
+      transition: opacity var(--dur-fast) linear; transform: none; filter: none;
+    }
+  }
+
+  /* Staggered content entrance within the active slide */
+  .slide > *:not(.page-num) { animation: none; }
+  .slide.active > * { animation: slideContentIn var(--dur-slow) var(--ease) both; }
+  .slide.active > *:nth-child(1) { animation-delay: .02s; }
+  .slide.active > *:nth-child(2) { animation-delay: .07s; }
+  .slide.active > *:nth-child(3) { animation-delay: .12s; }
+  .slide.active > *:nth-child(4) { animation-delay: .17s; }
+  .slide.active > *:nth-child(5) { animation-delay: .22s; }
+  .slide.active > *:nth-child(6) { animation-delay: .27s; }
+  @keyframes slideContentIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .slide.active > * { animation: none; }
+  }
+
+
+  /* ── Bottom nav arrows ──────────────────────────── */
+  .arrow-nav {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px; z-index: 200;
+    background: rgba(7,9,15,.85);
+    backdrop-filter: blur(12px) saturate(1.3); -webkit-backdrop-filter: blur(12px) saturate(1.3);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 8px 10px 8px 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .nav-divider { width: 1px; height: 24px; background: var(--border); margin: 0 4px; flex-shrink: 0; }
+  .arrow-btn {
+    width: 42px; height: 42px;
+    border: 1px solid var(--border); border-radius: 50%;
+    background: var(--bg-2); color: var(--text-1);
+    display: grid; place-items: center; cursor: pointer;
+    transition: all var(--dur-fast) var(--ease); font-size: 0; flex-shrink: 0;
+  }
+  .arrow-btn:hover { background: var(--cyan); color: var(--bg-0); border-color: var(--cyan); transform: translateY(-1px); }
+  .arrow-btn:disabled { opacity: .25; cursor: default; background: var(--bg-2); color: var(--text-3); border-color: var(--border); transform: none; }
+  .arrow-btn svg { width: 18px; height: 18px; }
+  .arrow-btn.ghost {
+    width: 34px; height: 34px; background: transparent; border-color: transparent; color: var(--text-2);
+  }
+  .arrow-btn.ghost:hover { background: var(--bg-3); color: var(--text-0); border-color: var(--border); }
+  .arrow-btn.ghost svg { width: 16px; height: 16px; }
+  .page-indicator {
+    font-family: Consolas, 'Courier New', Courier, monospace;
+    font-size: 13px; color: var(--text-2); letter-spacing: 1px;
+    min-width: 60px; text-align: center;
+  }
+
+  /* ── Overview / grid mode ────────────────────────── */
+  .overview-overlay {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(3,4,9,.88);
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    display: flex; flex-direction: column; align-items: center;
+    padding: 64px 40px 40px;
+    opacity: 0; pointer-events: none;
+    transition: opacity var(--dur-med) var(--ease);
+    overflow-y: auto;
+  }
+  .overview-overlay.open { opacity: 1; pointer-events: auto; }
+  .overview-header { text-align: center; margin-bottom: 30px; }
+  .overview-header h2 { font-size: 1.5rem; font-weight: 800; color: var(--text-0); margin-bottom: 6px; }
+  .overview-header p { color: var(--text-2); font-size: .88rem; }
+  .overview-grid {
+    display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 16px;
+    max-width: 1280px; width: 100%;
+  }
+  @media (max-width: 1100px) { .overview-grid { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+  @media (max-width: 640px) { .overview-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+  .overview-card {
+    background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-md);
+    padding: 14px 14px 12px; cursor: pointer; text-align: left;
+    transition: transform var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+    display: flex; flex-direction: column; gap: 8px; min-height: 96px;
+    color: inherit; font: inherit;
+  }
+  .overview-card:hover, .overview-card:focus-visible { transform: translateY(-3px); border-color: var(--card-color, var(--cyan)); box-shadow: var(--shadow-sm); }
+  .overview-card .ov-top { display: flex; align-items: center; justify-content: space-between; }
+  .overview-card .ov-num {
+    font-family: Consolas, monospace; font-size: .7rem; font-weight: 700;
+    color: var(--card-color, var(--cyan));
+  }
+  .overview-card .ov-bar { width: 26px; height: 3px; border-radius: 2px; background: var(--card-color, var(--cyan)); }
+  .overview-card .ov-title { color: var(--text-0); font-size: .86rem; font-weight: 600; line-height: 1.35; }
+  .overview-card.current { border-color: var(--card-color, var(--cyan)); box-shadow: 0 0 0 1px var(--card-color, var(--cyan)); }
+  .overview-close {
+    position: absolute; top: 22px; right: 32px;
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 1px solid var(--border); background: var(--bg-2); color: var(--text-1);
+    display: grid; place-items: center; cursor: pointer;
+  }
+  .overview-close:hover { background: var(--red); border-color: var(--red); color: #fff; }
+
+  /* ── Shortcuts modal ─────────────────────────────── */
+  .shortcuts-overlay {
+    position: fixed; inset: 0; z-index: 600;
+    background: rgba(3,4,9,.75);
+    backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity var(--dur-fast) var(--ease);
+  }
+  .shortcuts-overlay.open { opacity: 1; pointer-events: auto; }
+  .shortcuts-card {
+    background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-lg);
+    padding: 28px 30px; width: min(420px, 90vw);
+    box-shadow: var(--shadow-lg);
+  }
+  .shortcuts-card h3 { color: var(--text-0); font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; }
+  .shortcuts-list { display: flex; flex-direction: column; gap: 11px; }
+  .shortcuts-row { display: flex; align-items: center; justify-content: space-between; font-size: .86rem; color: var(--text-1); }
+  .shortcuts-row .keys kbd { opacity: 1; }
+
+  /* ── Typography ─────────────────────────────────── */
+  .page-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--cyan-soft); font-weight: 600; margin-bottom: 18px;
+  }
+  .page-tag .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--cyan); box-shadow: 0 0 8px var(--cyan);
+  }
+  .page-num {
+    position: absolute; top: 96px; right: 64px;
+    font-family: Consolas, 'Courier New', Courier, monospace;
+    font-size: 12px; color: var(--text-3); letter-spacing: 1px;
+  }
+
+  h1.headline {
+    font-weight: 700;
+    font-size: clamp(2.2rem, 4.6vw, 4rem);
+    line-height: 1.05; color: var(--text-0);
+    letter-spacing: -.02em; margin: 0 0 18px;
+  }
+  h1.headline .accent { color: var(--cyan); font-style: italic; }
+
+  .subtitle {
+    color: var(--text-2); font-size: 1.1rem;
+    max-width: 720px; line-height: 1.55; margin-bottom: 36px;
+  }
+
+  .eyebrow {
+    font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--text-2); font-weight: 600;
+  }
+
+  /* ── Agenda ─────────────────────────────────────── */
+  .agenda-list {
+    display: flex; flex-direction: column; gap: 0;
+    max-width: 780px; width: 100%;
+  }
+  .agenda-item {
+    display: flex; align-items: center; gap: 22px;
+    padding: 22px 26px;
+    border: 1px solid var(--border-soft);
+    border-bottom: none;
+    background: var(--bg-1);
+    transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+    cursor: pointer;
+    position: relative; z-index: 1;
+  }
+  .agenda-item:first-child { border-radius: var(--r-lg) var(--r-lg) 0 0; }
+  .agenda-item:last-child { border-bottom: 1px solid var(--border-soft); border-radius: 0 0 var(--r-lg) var(--r-lg); }
+  .agenda-item:hover { background: var(--bg-2); border-color: var(--border); transform: translateX(4px); z-index: 2; box-shadow: var(--shadow-sm); }
+  .agenda-item:hover + .agenda-item { border-top-color: var(--border); }
+
+  .agenda-num {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: grid; place-items: center; flex-shrink: 0;
+    font-family: Consolas, 'Courier New', Courier, monospace;
+    font-weight: 700; font-size: .9rem;
+    color: #fff;
+  }
+  .agenda-item:nth-child(1) .agenda-num { background: linear-gradient(135deg, var(--cyan), #1f6feb); }
+  .agenda-item:nth-child(2) .agenda-num { background: linear-gradient(135deg, var(--green), #238636); }
+  .agenda-item:nth-child(3) .agenda-num { background: linear-gradient(135deg, var(--purple), var(--violet)); }
+  .agenda-item:nth-child(4) .agenda-num { background: linear-gradient(135deg, var(--gold), var(--orange)); }
+  .agenda-item:nth-child(5) .agenda-num { background: linear-gradient(135deg, var(--teal), var(--cyan)); }
+
+  .agenda-text { flex: 1; }
+  .agenda-text .title {
+    color: var(--text-0); font-weight: 600; font-size: 1.05rem;
+    margin-bottom: 3px;
+  }
+  .agenda-text .desc {
+    color: var(--text-3); font-size: .82rem;
+  }
+  .agenda-item .arrow {
+    color: var(--text-3); font-size: 20px; transition: color .2s;
+  }
+  .agenda-item:hover .arrow { color: var(--text-0); }
+
+  /* ── Primitives (4-card grid) ───────────────────── */
+  .prim-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 18px; max-width: 1200px; width: 100%;
+  }
+  .prim-card {
+    background: linear-gradient(180deg, var(--bg-2), var(--bg-1));
+    border: 1px solid var(--border); border-radius: var(--r-lg);
+    padding: 24px 20px; position: relative; overflow: hidden;
+    transition: transform .25s, border-color .25s;
+  }
+  .prim-card:hover { transform: translateY(-4px); border-color: var(--cyan); box-shadow: var(--shadow); }
+  .prim-card::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px;
+  }
+  .prim-card:nth-child(1)::before { background: var(--cyan); }
+  .prim-card:nth-child(2)::before { background: var(--green); }
+  .prim-card:nth-child(3)::before { background: var(--purple); }
+  .prim-card:nth-child(4)::before { background: var(--gold); }
+  .prim-card h4 {
+    font-family: Consolas, 'Courier New', Courier, monospace;
+    font-size: .85rem; margin-bottom: 10px; font-weight: 600;
+  }
+  .prim-card:nth-child(1) h4 { color: var(--cyan-soft); }
+  .prim-card:nth-child(2) h4 { color: var(--green-soft); }
+  .prim-card:nth-child(3) h4 { color: var(--purple); }
+  .prim-card:nth-child(4) h4 { color: var(--gold); }
+  .prim-card p, .prim-card ul { color: var(--text-2); font-size: .85rem; line-height: 1.5; }
+  @media (max-width: 1000px) { .prim-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  /* ── Two levers ─────────────────────────────────── */
+  .levers-header { max-width: 1200px; width: 100%; margin-bottom: 24px; }
+  .levers-header h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; line-height: 1.1; }
+  .levers-header .accent { color: var(--green); }
+  .levers-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
+    max-width: 1200px; width: 100%;
+    border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden;
+  }
+  .lever-col { background: var(--bg-1); padding: 30px 32px; }
+  .lever-col .lever-icon {
+    width: 36px; height: 36px; border: 1px solid var(--border);
+    border-radius: 6px; display: grid; place-items: center;
+    font-family: Consolas, 'Courier New', Courier, monospace; font-size: .8rem; color: var(--text-1);
+    margin-bottom: 16px;
+  }
+  .lever-col h3 { color: var(--text-0); font-size: 1.25rem; font-weight: 700; margin-bottom: 20px; }
+  .lever-item { margin-bottom: 16px; }
+  .lever-item .label { color: var(--text-0); font-weight: 600; font-size: .92rem; }
+  .lever-item .desc { color: var(--text-2); font-size: .85rem; }
+  .lever-item .underline { text-decoration: underline; }
+  @media (max-width: 900px) { .levers-grid { grid-template-columns: 1fr; } }
+
+  /* ── Guide the agent ────────────────────────────── */
+  .guide-header { max-width: 1200px; width: 100%; margin-bottom: 20px; }
+  .guide-header .eyebrow {
+    text-transform: uppercase; letter-spacing: 2px; font-size: .75rem;
+    color: var(--text-3); font-weight: 600; margin-bottom: 8px;
+  }
+  .guide-header h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; color: var(--text-0); }
+  .guide-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
+    max-width: 1200px; width: 100%;
+    border: 1px solid var(--green); border-radius: var(--r-lg); overflow: hidden;
+    margin-bottom: 28px;
+  }
+  .guide-cell { background: var(--bg-1); padding: 28px 26px; }
+  .guide-cell .check {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid var(--green); color: var(--green);
+    display: grid; place-items: center; margin-bottom: 20px;
+  }
+  .guide-cell h3 { color: var(--text-0); font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; }
+  .guide-cell p { color: var(--text-2); font-size: .88rem; }
+  .guide-bar {
+    display: flex; gap: 2px; max-width: 1200px; width: 100%;
+  }
+  .guide-bar-item {
+    padding: 12px 16px; font-size: .7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px; text-align: center;
+  }
+  .guide-bar-label { color: var(--text-2); font-size: .65rem; margin-bottom: 4px; }
+  @media (max-width: 900px) { .guide-grid { grid-template-columns: 1fr; } }
+
+  /* ── Designing agentic workloads ────────────────── */
+  .wl-header { max-width: 1200px; width: 100%; margin: 0 auto 56px; text-align: center; }
+  .wl-header .eyebrow {
+    text-transform: uppercase; letter-spacing: 2px; font-size: .8rem;
+    color: var(--green-soft); font-weight: 600; margin-bottom: 18px;
+  }
+  .wl-header h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 600; line-height: 1.25; color: var(--text-2); }
+  .wl-header h1 b { color: var(--text-0); font-weight: 700; }
+  .wl-flow {
+    position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px;
+    max-width: 1200px; width: 100%; margin: 0 auto;
+  }
+  .wl-flow::before {
+    content: ''; position: absolute; left: 10%; right: 10%; top: 146px; height: 2px;
+    background: linear-gradient(90deg, rgba(63,185,80,.25), var(--green) 20%, var(--green) 80%, rgba(63,185,80,.25));
+  }
+  .wl-step { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .wl-step h3 { color: var(--text-0); font-size: 1.35rem; font-weight: 600; margin-bottom: 6px; }
+  .wl-cmd {
+    color: var(--text-2); font-size: .82rem; line-height: 1.4; min-height: 2.8em; margin-bottom: 14px;
+  }
+  .wl-circle {
+    position: relative; z-index: 1;
+    width: 112px; height: 112px; border-radius: 50%;
+    border: 2px solid var(--green); color: var(--green-soft);
+    background: radial-gradient(circle at 50% 40%, rgba(63,185,80,.16), transparent 70%), var(--bg-1);
+    box-shadow: 0 0 24px rgba(63,185,80,.18);
+    display: grid; place-items: center; margin-bottom: 40px;
+  }
+  .wl-circle svg { width: 38px; height: 38px; }
+  .wl-pill {
+    display: inline-flex; align-items: center; gap: 12px;
+    padding: 9px 22px; border-radius: 999px;
+    border: 1px solid rgba(63,185,80,.55); background: rgba(63,185,80,.08);
+    color: var(--text-0); font-size: .85rem; font-weight: 500; letter-spacing: .5px; text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .wl-pill::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--green-soft); }
+  @media (max-width: 900px) { .wl-flow { grid-template-columns: 1fr; } .wl-flow::before { display: none; } .wl-circle { margin-bottom: 16px; } }
+
+  /* ── Prompt discipline ──────────────────────────── */
+  .pd-card {
+    max-width: 1200px; width: 100%;
+    border: 1px solid var(--border); border-top: 3px solid var(--green);
+    border-radius: var(--r-lg); overflow: hidden; background: var(--bg-1);
+  }
+  .pd-head { padding: 32px 36px 28px; border-bottom: 1px solid var(--border); }
+  .pd-head h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; color: var(--text-0); margin-bottom: 12px; }
+  .pd-head p { color: var(--text-2); font-size: 1.05rem; line-height: 1.55; max-width: 760px; }
+  .pd-grid { display: grid; grid-template-columns: 1fr 1fr; }
+  .pd-col { padding: 28px 36px 30px; display: flex; flex-direction: column; }
+  .pd-col.bad  { background: linear-gradient(180deg, rgba(248,81,73,.12), rgba(248,81,73,.06)); border-right: 1px solid var(--border); }
+  .pd-col.good { background: linear-gradient(180deg, rgba(63,185,80,.12), rgba(63,185,80,.06)); }
+  .pd-icon {
+    width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; margin-bottom: 18px;
+  }
+  .pd-col.bad .pd-icon  { border: 2px solid var(--red); color: var(--red); }
+  .pd-col.good .pd-icon { border: 2px solid var(--green); color: var(--green); }
+  .pd-col h3 { color: var(--text-0); font-size: 1.5rem; font-weight: 600; margin-bottom: 22px; }
+  .pd-prompt {
+    font-family: Consolas, 'Courier New', Courier, monospace; font-size: .9rem; line-height: 1.6;
+    color: var(--text-0); background: rgba(3,4,9,.45); border: 1px solid var(--border-soft);
+    border-radius: var(--r-md); padding: 16px 18px; margin-bottom: 18px; flex: 1;
+  }
+  .pd-prompt .ps { color: var(--text-2); display: block; margin-bottom: 8px; }
+  .pd-note { font-size: .85rem; line-height: 1.5; }
+  .pd-col.bad .pd-note  { color: var(--red); }
+  .pd-col.good .pd-note { color: var(--green-soft); }
+  @media (max-width: 900px) { .pd-grid { grid-template-columns: 1fr; } .pd-col.bad { border-right: none; border-bottom: 1px solid var(--border); } }
+
+  /* ── Session roadmap ────────────────────────────── */
+  .ses-header { max-width: 1280px; width: 100%; margin: 0 auto 22px; }
+  .ses-header .eyebrow {
+    text-transform: uppercase; letter-spacing: 2px; font-size: .75rem;
+    color: var(--text-3); font-weight: 600; margin-bottom: 8px;
+  }
+  .ses-header h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; color: var(--text-0); }
+  .ses-grid {
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px;
+    max-width: 1280px; width: 100%; margin: 0 auto;
+  }
+  .ses-card {
+    --ses-color: var(--gold);
+    background: var(--bg-1); border: 1px solid var(--border); border-top: 2px solid var(--ses-color);
+    border-radius: var(--r-lg); padding: 18px 18px 20px;
+    transition: transform .25s var(--ease), border-color .25s var(--ease);
+  }
+  .ses-card:hover { transform: translateY(-3px); }
+  .ses-card.s1 { --ses-color: var(--cyan); }
+  .ses-card.s2 { --ses-color: var(--purple); }
+  .ses-card.s3 { --ses-color: var(--teal); }
+  .ses-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .ses-pill {
+    font-size: .62rem; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--ses-color); padding: 4px 10px; border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--ses-color) 45%, transparent);
+    background: color-mix(in srgb, var(--ses-color) 12%, transparent);
+  }
+  .ses-level { font-size: .62rem; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-3); }
+  .ses-card h3 { color: var(--text-0); font-size: 1rem; font-weight: 700; line-height: 1.3; margin-bottom: 8px; }
+  .ses-desc { color: var(--text-2); font-size: .78rem; line-height: 1.5; margin-bottom: 12px; }
+  .ses-list { list-style: none; padding: 0; margin: 0; }
+  .ses-list li {
+    position: relative; padding-left: 14px; margin-bottom: 7px;
+    color: var(--text-2); font-size: .74rem; line-height: 1.45;
+  }
+  .ses-list li::before {
+    content: ''; position: absolute; left: 0; top: .55em;
+    width: 5px; height: 5px; border-radius: 50%; background: var(--ses-color);
+  }
+  .ses-list li b { color: var(--text-0); font-weight: 600; }
+  @media (max-width: 1100px) { .ses-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 700px) { .ses-grid { grid-template-columns: 1fr; } }
+
+  /* ── Research → Plan → Implement ────────────────── */
+  .rpi-layout { max-width: 1200px; width: 100%; }
+  .rpi-layout .eyebrow {
+    text-transform: uppercase; letter-spacing: 2px; font-size: .75rem;
+    color: var(--text-3); font-weight: 600; margin-bottom: 8px;
+  }
+  .rpi-layout h1 {
+    font-size: clamp(2rem, 4.5vw, 3.2rem); font-weight: 800; color: var(--text-0);
+    margin-bottom: 36px;
+  }
+  .rpi-prompt {
+    background: var(--bg-2); border: 1px solid var(--border);
+    border-radius: var(--r-md); padding: 14px 20px; margin-bottom: 28px;
+    font-family: Consolas, 'Courier New', Courier, monospace; font-size: .82rem;
+    color: var(--text-2); max-width: 380px;
+  }
+  .rpi-row { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
+  .rpi-label { min-width: 110px; flex-shrink: 0; }
+  .rpi-label .cmd {
+    font-family: Consolas, 'Courier New', Courier, monospace; font-size: 1rem;
+    font-weight: 700; color: var(--text-0);
+  }
+  .rpi-label .model {
+    font-size: .75rem; color: var(--text-3); font-family: Consolas, 'Courier New', Courier, monospace;
+  }
+  .rpi-blocks { display: flex; gap: 2px; flex: 1; align-items: stretch; }
+  .rpi-block {
+    padding: 10px 14px; font-size: .7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .5px; text-align: center;
+    display: grid; place-items: center; min-height: 48px;
+    border-radius: 4px;
+  }
+  .rpi-block.sys { background: var(--green); color: var(--bg-0); }
+  .rpi-block.prompt { background: var(--violet); color: #fff; }
+  .rpi-block.file { background: var(--gold); color: var(--bg-0); min-width: 50px; }
+  .rpi-block.file.ok { border: 2px solid var(--green); }
+  .rpi-block.file.bad { border: 2px solid var(--red); }
+  .rpi-block.plan { background: var(--cyan); color: var(--bg-0); }
+  .rpi-block.reason { background: var(--text-3); color: var(--bg-0); }
+  .rpi-block.spec { background: var(--cyan); color: var(--bg-0); }
+  .rpi-block.change { background: #196B24; color: #fff; flex: 1; }
+  .rpi-bar { background: linear-gradient(90deg, var(--green), transparent); height: 4px; flex: 1; border-radius: 2px; }
+  .rpi-conn { width: 2px; height: 20px; background: var(--cyan); margin-left: 180px; }
+
+  /* ── Agent configs ──────────────────────────────── */
+  .configs-layout { max-width: 900px; width: 100%; }
+  .configs-layout h1 {
+    font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; color: var(--text-0);
+    margin-bottom: 28px;
+  }
+  .config-list {
+    display: flex; flex-direction: column; gap: 0;
+    border: 1px solid var(--green); border-radius: var(--r-lg); overflow: hidden;
+    border-top: 3px solid var(--green);
+  }
+  .config-row {
+    display: flex; align-items: center; gap: 16px;
+    padding: 18px 24px; border-bottom: 1px solid var(--border);
+    background: var(--bg-1);
+    transition: background var(--dur-fast) var(--ease);
+  }
+  .config-row:hover { background: var(--bg-2); }
+  .config-row:last-child { border-bottom: none; }
+  .config-row .check {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 2px solid var(--green); color: var(--green);
+    display: grid; place-items: center; flex-shrink: 0;
+  }
+  .config-row .name { color: var(--text-0); font-size: 1.1rem; font-weight: 600; }
+  .config-row .path {
+    font-family: Consolas, 'Courier New', Courier, monospace; font-size: .78rem;
+    color: var(--text-3); margin-left: 8px;
+  }
+
+  /* ── Power users ────────────────────────────────── */
+  .power-layout {
+    display: grid; grid-template-columns: .6fr 1fr; gap: 32px;
+    max-width: 1200px; width: 100%; align-items: start;
+  }
+  .power-left .eyebrow {
+    text-transform: uppercase; letter-spacing: 2px; font-size: .7rem;
+    color: var(--text-3); margin-bottom: 12px;
+  }
+  .power-left h1 {
+    font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; color: var(--text-0);
+    margin-bottom: 24px;
+  }
+  .power-left .caveat { color: var(--text-2); font-size: .88rem; line-height: 1.55; }
+  .power-left .caveat b { color: var(--green-soft); font-weight: 600; }
+  .power-tips { display: flex; flex-direction: column; gap: 0; }
+  .power-tip { padding: 20px 24px; border-bottom: 1px solid var(--border); }
+  .power-tip:last-child { border-bottom: none; }
+  .power-tip h3 { color: var(--text-0); font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }
+  .power-tip p { color: var(--text-2); font-size: .85rem; line-height: 1.5; }
+  .power-tip a { color: var(--cyan); text-decoration: none; }
+  .power-tip a:hover { text-decoration: underline; }
+  @media (max-width: 900px) { .power-layout { grid-template-columns: 1fr; } }
+
+  /* ── Two-col content layout ─────────────────────── */
+  .two-col {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+    max-width: 1100px; width: 100%;
+  }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+  .content-card {
+    border: 1px solid var(--border); border-radius: var(--r-lg);
+    background: var(--bg-1); padding: 28px 26px;
+    transition: transform var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+  }
+  .content-card:hover { transform: translateY(-3px); border-color: var(--border-strong, var(--text-3)); box-shadow: var(--shadow-sm); }
+  .content-card h3 { color: var(--text-0); font-size: 1.15rem; font-weight: 700; margin-bottom: 14px; }
+  .content-card p { color: var(--text-2); font-size: .92rem; line-height: 1.55; margin-bottom: 12px; }
+  .content-card ul { padding-left: 18px; margin: 0; }
+  .content-card li { color: var(--text-2); font-size: .88rem; line-height: 1.6; margin-bottom: 6px; }
+
+  /* ── Three card grid ────────────────────────────── */
+  .three-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 18px; max-width: 1200px; width: 100%;
+  }
+  @media (max-width: 900px) { .three-grid { grid-template-columns: 1fr; } }
+
+  /* ── Flow steps ─────────────────────────────────── */
+  .flow-steps {
+    display: flex; align-items: center; gap: 0;
+    max-width: 1100px; width: 100%;
+  }
+  .flow-step {
+    flex: 1; border: 1px solid var(--border); border-radius: var(--r-lg);
+    background: var(--bg-1); padding: 24px 20px; text-align: center;
+    position: relative;
+    transition: transform var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+  }
+  .flow-step:hover { transform: translateY(-3px); border-color: var(--text-3); }
+  .flow-step h3 { color: var(--text-0); font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
+  .flow-step p { color: var(--text-2); font-size: .82rem; line-height: 1.5; }
+  .flow-step .step-badge {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+    font-weight: 800; font-size: .7rem; color: #fff;
+  }
+  .flow-arrow {
+    width: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    color: var(--text-3);
+  }
+  .flow-arrow svg { width: 20px; height: 20px; }
+
+  .key-hint {
+    position: fixed; bottom: 30px; left: 28px; z-index: 210;
+    display: flex; align-items: center; gap: 6px;
+    font-size: .68rem; color: var(--text-2);
+    background: rgba(7,9,15,.7); border: 1px solid var(--border-soft); border-radius: 999px;
+    padding: 6px 12px; cursor: pointer;
+    transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+  }
+  .key-hint:hover { color: var(--text-0); border-color: var(--border); }
+  @media (max-width: 720px) { .key-hint { display: none; } }
+  kbd {
+    display: inline-block; padding: 2px 5px;
+    border: 1px solid var(--border); border-radius: 4px;
+    font-family: Consolas, 'Courier New', Courier, monospace; font-size: .62rem;
+    background: var(--bg-2); margin: 0 1px; color: var(--text-1);
+  }
+
+  .visually-hidden {
+    position: absolute !important; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+  .no-transition { transition: none !important; }
+
+  /* ── Flywheel (from enablement deck) ────────────── */
+  .flywheel-layout {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 36px;
+    max-width: 1200px; width: 100%; align-items: center;
+  }
+  .flywheel-text h2 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: clamp(1.6rem, 3vw, 2.6rem); font-weight: 700;
+    color: var(--text-0); margin-bottom: 16px; line-height: 1.1;
+  }
+  .flywheel-text p { color: var(--text-2); font-size: 1.05rem; line-height: 1.6; max-width: 500px; }
+  .flywheel-text p em { color: var(--text-1); font-style: italic; }
+  .flywheel-img { overflow: visible; }
+  .flywheel-img img { display: block; max-height: 68vh; max-width: 100%; width: auto; height: auto; object-fit: contain; }
+  @media (max-width: 900px) { .flywheel-layout { grid-template-columns: 1fr; } }
+
+  /* ── Spec insight (from enablement deck) ────────── */
+  .spec-insight {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 20px; background: var(--bg-2);
+    border: 1px solid var(--border-soft); border-radius: var(--r-md);
+  }
+  .spec-insight .num {
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    font-size: 1.8rem; font-weight: 700; color: var(--cyan);
+  }
+
+  /* ── Questions (new slide) ──────────────────────── */
+  .question-list {
+    display: flex; flex-direction: column; gap: 16px;
+    max-width: 900px; width: 100%;
+  }
+  .question-row {
+    display: flex; align-items: center; gap: 22px;
+    padding: 26px 30px;
+    border: 1px solid var(--border); border-radius: var(--r-lg);
+    background: linear-gradient(135deg, rgba(179,146,240,.06), transparent 55%), var(--bg-1);
+    transition: transform .25s, border-color .25s;
+  }
+  .question-row:hover { transform: translateX(6px); border-color: var(--purple); box-shadow: var(--shadow); }
+  .question-row .q-mark {
+    width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
+    display: grid; place-items: center;
+    font-family: Consolas, 'Courier New', Courier, monospace;
+    font-weight: 800; font-size: 1.3rem; color: #fff;
+    background: linear-gradient(135deg, var(--purple), var(--violet));
+  }
+  .question-row .q-text { color: var(--text-0); font-size: 1.15rem; font-weight: 600; }
+
+  /* ── Model reference CTA button ──────────────────── */
+  .model-ref-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: var(--glow-cyan), var(--shadow); }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#mainSlides">Skip to slide content</a>
+
+<!-- ── Top nav ──────────────────────────────────── -->
+<nav class="topnav">
+  <div class="brand-group">
+    <a class="brand" href="javascript:void(0)" onclick="if(typeof goToSlide==='function')goToSlide(0);" style="text-decoration:none;cursor:pointer;">
+      <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      <span>Copilot Champions Deep Dive</span>
+      <div class="dot"></div>
+    </a>
+  </div>
+  <div class="nav-actions">
+    <a class="download-link" href="https://github.com/Lantern-Cloud-Services/Pres-GHCP_champions_brownfield_primitives_iterations/blob/e14802c65856b7d1284e5680fa6caa9ec177fc7a/ghcp_champions_cli.html" target="_blank" rel="noopener noreferrer">
+      <svg viewBox="0 0 16 16"><path d="M7.47 10.78a.75.75 0 0 0 1.06 0l3.25-3.25a.75.75 0 0 0-1.06-1.06L8.75 8.44V1.75a.75.75 0 0 0-1.5 0v6.69L5.28 6.47a.75.75 0 0 0-1.06 1.06l3.25 3.25zM3.5 12.25a.75.75 0 0 0-1.5 0v1c0 .966.784 1.75 1.75 1.75h8.5A1.75 1.75 0 0 0 14 13.25v-1a.75.75 0 0 0-1.5 0v1a.25.25 0 0 1-.25.25h-8.5a.25.25 0 0 1-.25-.25v-1z"/></svg>
+      <span>Download</span>
+    </a>
+  </div>
+</nav>
+
+<!-- ── Progress (section-segmented) ─────────────── -->
+<div class="progress-bar" role="progressbar" aria-label="Presentation progress" aria-valuemin="1" aria-valuemax="18" aria-valuenow="1" id="progressBar">
+  <div class="progress-seg" data-section="1" style="--seg-weight:4;"><div class="progress-seg-fill" id="seg1Fill"></div></div>
+  <div class="progress-seg" data-section="2" style="--seg-weight:1;"><div class="progress-seg-fill" id="seg2Fill"></div></div>
+  <div class="progress-seg" data-section="3" style="--seg-weight:13;"><div class="progress-seg-fill" id="seg3Fill"></div></div>
+</div>
+
+<!-- ── Side rail ────────────────────────────────── -->
+<div class="rail" id="rail"></div>
+
+<!-- ── Slides ───────────────────────────────────── -->
+<div class="slides-viewport" id="mainSlides">
+
+  <!-- ════ SLIDE 0: Title & Agenda ════ -->
+  <div class="slide active" data-slide="0" data-section="1" role="group" aria-roledescription="slide" aria-label="Slide 1 of 18: Agenda">
+    <div class="page-tag"><span class="dot"></span> Agenda</div>
+
+    <h1 class="headline" style="font-size:clamp(1.9rem,3.6vw,3rem); margin-bottom:12px;">Copilot Champions Deep Dive</h1>
+    <p class="subtitle" style="margin-bottom:34px;">A deep dive into brownfield modernization, agent configuration, and the iteration patterns that make GitHub Copilot effective in real codebases.</p>
+
+    <div class="agenda-list">
+      <div class="agenda-item" data-goto="1">
+        <div class="agenda-num">01</div>
+        <div class="agenda-text">
+          <div class="title">Brownfield Modernization</div>
+          <div class="desc">Spec definitions, codebase introspection, and safe collaboration patterns for legacy code</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="agenda-item" data-goto="4">
+        <div class="agenda-num">02</div>
+        <div class="agenda-text">
+          <div class="title">Custom Instructions and Agent files</div>
+          <div class="desc">Agent configs and the agentic primitives that persist context</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="agenda-item" data-goto="5">
+        <div class="agenda-num">03</div>
+        <div class="agenda-text">
+          <div class="title">Iteration Patterns and Best Practices</div>
+          <div class="desc">The flywheel, spec-driven development, model selection, prompting, and power-user guidance</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SLIDE 1: Create Spec Definitions & Design Documentation (v3) ════ -->
+  <div class="slide" data-slide="1" data-section="1" role="group" aria-roledescription="slide" aria-label="Slide 2 of 18: Create Spec Definitions & Design Documentation">
+    <div class="page-num"></div>
+    <div class="page-tag"><span class="dot" style="background:var(--cyan);box-shadow:0 0 8px var(--cyan);"></span> Brownfield Modernization</div>
+    <h1 class="headline" style="font-size:clamp(1.4rem,2.8vw,2.2rem); margin-bottom:24px;">Create Spec Definitions &amp; Design Documentation</h1>
+
+    <div class="two-col">
+      <div class="content-card">
+        <h3 style="color:var(--cyan-soft);">Why Specs Matter</h3>
+        <p>Before Copilot can effectively contribute to an existing codebase, it needs to understand the system's design intent — not just its current implementation.</p>
+        <ul>
+          <li>Defines the <b style="color:var(--text-0);">boundary of acceptable changes</b></li>
+          <li>Prevents Copilot from suggesting patterns that conflict with existing architecture</li>
+          <li>Creates a shared understanding between human and AI reviewers</li>
+          <li>Enables deterministic validation of AI-generated code against documented contracts</li>
+        </ul>
+      </div>
+      <div class="content-card">
+        <h3 style="color:var(--green-soft);">What to Document</h3>
+        <ul>
+          <li><b style="color:var(--text-0);">API contracts</b> — input/output schemas, error handling patterns</li>
+          <li><b style="color:var(--text-0);">Data flow diagrams</b> — how information moves through the system</li>
+          <li><b style="color:var(--text-0);">Invariants</b> — conditions that must always be true</li>
+          <li><b style="color:var(--text-0);">Module boundaries</b> — what each component owns and doesn't own</li>
+          <li><b style="color:var(--text-0);">Legacy constraints</b> — why certain patterns exist (even if suboptimal)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SLIDE 2: Building Context Through Codebase Introspection (v4) ════ -->
+  <div class="slide" data-slide="2" data-section="1" role="group" aria-roledescription="slide" aria-label="Slide 3 of 18: Building Context Through Codebase Introspection">
+    <div class="page-num"></div>
+    <div class="page-tag"><span class="dot" style="background:var(--cyan);box-shadow:0 0 8px var(--cyan);"></span> Brownfield Modernization</div>
+    <h1 class="headline" style="font-size:clamp(1.4rem,2.8vw,2.2rem); margin-bottom:24px;">Building Context Through Codebase Introspection</h1>
+
+    <div class="flow-steps" style="margin-bottom:32px;">
+      <div class="flow-step" style="position:relative;">
+        <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.7rem;color:#fff;background:var(--cyan);">1</div>
+        <h3>Discover</h3>
+        <p>Use Copilot to map existing patterns, dependencies, and conventions</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="flow-step" style="position:relative;">
+        <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.7rem;color:#fff;background:var(--green);">2</div>
+        <h3>Document</h3>
+        <p>Generate architecture docs, dependency graphs, and pattern catalogs</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="flow-step" style="position:relative;">
+        <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.7rem;color:#fff;background:var(--purple);">3</div>
+        <h3>Encode</h3>
+        <p>Embed findings into copilot-instructions.md, custom agents and other agentic primitives</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="flow-step" style="position:relative;">
+        <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.7rem;color:#fff;background:var(--gold);">4</div>
+        <h3>Validate</h3>
+        <p>Verify AI outputs align with discovered patterns and documented specs</p>
+      </div>
+    </div>
+
+    <div class="content-card" style="max-width:1100px;">
+      <h3 style="color:var(--purple);">Practical Techniques</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div>
+          <p><b style="color:var(--text-0);">Ask Copilot to analyze</b> — "Describe the patterns used in this module and list all external dependencies"</p>
+          <p><b style="color:var(--text-0);">Generate dependency maps</b> — Use /research to scan the codebase before making changes</p>
+        </div>
+        <div>
+          <p><b style="color:var(--text-0);">Create pattern catalogs</b> — Document recurring patterns so Copilot follows them consistently</p>
+          <p><b style="color:var(--text-0);">Establish naming conventions</b> — Explicit rules in instructions files prevent style drift</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-card" style="max-width:1100px;margin-top:18px;border-left:3px solid var(--gold);">
+      <h3 style="color:var(--gold);">Impact</h3>
+      <p>This is one of the most impactful practices that an organization can do or not do. It drastically improves agent efficacy while drastically decreasing cost.</p>
+    </div>
+  </div>
+
+  <!-- ════ SLIDE 3: Safe Collaboration Patterns for Legacy Code (v5) ════ -->
+  <div class="slide" data-slide="3" data-section="1" role="group" aria-roledescription="slide" aria-label="Slide 4 of 18: Safe Collaboration Patterns for Legacy Code">
+    <div class="page-num"></div>
+    <div class="page-tag"><span class="dot" style="background:var(--cyan);box-shadow:0 0 8px var(--cyan);"></span> Brownfield Modernization</div>
+    <h1 class="headline" style="font-size:clamp(1.4rem,2.8vw,2.2rem); margin-bottom:24px;">Safe Collaboration Patterns for Legacy Code</h1>
+
+    <div class="three-grid">
+      <div class="content-card" style="border-top:3px solid var(--cyan);">
+        <h3 style="color:var(--cyan-soft);">Incremental Adoption</h3>
+        <ul>
+          <li>Start with read-only tasks: documentation, analysis, test generation</li>
+          <li>Gradually expand to refactoring with human review gates</li>
+          <li>Establish rollback strategies before making changes</li>
+          <li>Use feature flags for AI-generated code paths</li>
+        </ul>
+      </div>
+      <div class="content-card" style="border-top:3px solid var(--green);">
+        <h3 style="color:var(--green-soft);">Guardrail Patterns</h3>
+        <ul>
+          <li>Define "no-touch" zones in instructions files</li>
+          <li>Require test coverage before AI modifications</li>
+          <li>Use scoped instructions for sensitive modules</li>
+          <li>Enforce code review for all AI-generated changes</li>
+        </ul>
+      </div>
+      <div class="content-card" style="border-top:3px solid var(--purple);">
+        <h3 style="color:var(--purple);">Risk Mitigation</h3>
+        <ul>
+          <li>Never let AI modify security-critical code without explicit review</li>
+          <li>Keep session context focused — don't mix concerns</li>
+          <li>Validate AI suggestions against existing test suites</li>
+          <li>Document AI decisions for audit trails</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SLIDE 4: Agent Configs (v16) ════ -->
+  <div class="slide" data-slide="4" data-section="2" role="group" aria-roledescription="slide" aria-label="Slide 5 of 18: Agent Configs">
+    <div class="page-num"></div>
+    <div class="page-tag"><span class="dot" style="background:var(--green);box-shadow:0 0 8px var(--green);"></span> Custom Instructions and Agent files</div>
+
+    <div class="configs-layout">
+      <h1>Agent Configs</h1>
+      <div class="config-list">
+        <div class="config-row">
+          <div class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="name">Persistent instructions</div>
+          <div class="path">COPILOT-INSTRUCTIONS.MD</div>
+        </div>
+        <div class="config-row">
+          <div class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="name">Custom Agents.</div>
+          <div class="path">./GITHUB/AGENTS/*.AGENT.MD</div>
+        </div>
+        <div class="config-row">
+          <div class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="name">Skills</div>
+          <div class="path">./GITHUB/SKILLS/*/SKILL.MD</div>
+        </div>
+        <div class="config-row">
+          <div class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="name">MCP</div>
+          <div class="path"></div>
+        </div>
+        <div class="config-row">
+          <div class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="name">Subagents</div>
+          <div class="path"></div>
+        </div>
+        <div class="config-row">
+          <div class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="name">Scoped instructions.</div>
+          <div class="path">./GITHUB/INSTRUCTIONS/*.INSTRUCTIONS.MD</div>
+        </div>
+        <div class="config-row">
+          <div class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="name">Prompt Files</div>
+          <div class="path">./.GITHUB/PROMPTS/*.PROMPT.MD</div>
+        </div>
+        <div class="config-row">
+          <div class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="name">Copilot Memory</div>
+          <div class="path"></div>
+        </div>
+      </div>
+    </div>
+
+    <h2 style="font-size:1.4rem;font-weight:700;color:var(--text-0);margin-top:32px;margin-bottom:18px;">Agentic Primitives</h2>
+    <div class="prim-grid">
+      <div class="prim-card">
+        <h4>Copilot-Instructions.md</h4>
+        <ul style="color:var(--text-2);font-size:.85rem;line-height:1.6;padding-left:18px;margin:0;">
+          <li>Always included in every chat request.</li>
+          <li>For broad, workspace-wide coding standards.</li>
+          <li>Works across multiple editors (VS Code, Visual Studio, GitHub.com)</li>
+        </ul>
+      </div>
+      <div class="prim-card">
+        <h4>.instructions.md</h4>
+        <ul style="color:var(--text-2);font-size:.85rem;line-height:1.6;padding-left:18px;margin:0;">
+          <li>Task or context-specific instructions that can target specific files or patterns.</li>
+          <li>Auto/manual inclusion</li>
+          <li>Provides more granular, task-specific instructions</li>
+        </ul>
+      </div>
+      <div class="prim-card">
+        <h4>.prompt.md</h4>
+        <ul style="color:var(--text-2);font-size:.85rem;line-height:1.6;padding-left:18px;margin:0;">
+          <li>Used for fine tuning responses</li>
+          <li>Customizes how Copilot generates code in specific contexts.</li>
+          <li>Creates reusable prompts for common tasks</li>
+        </ul>
+      </div>
+      <div class="prim-card">
+        <h4>.agent.md</h4>
+        <ul style="color:var(--text-2);font-size:.85rem;line-height:1.6;padding-left:18px;margin:0;">
+          <li>Sets persona</li>
+          <li>Configure which tools the AI can access</li>
+          <li>Defines behaviour, sets tone and best practices</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SLIDE 5: The AI Native Dev Flywheel (en9) ════ -->
+  <div class="slide" data-slide="5" data-section="3" role="group" aria-roledescription="slide" aria-label="Slide 6 of 18: The AI Native Dev Flywheel">
+    <div class="page-num"></div>
+    <div class="page-tag"><span class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple);"></span> Iteration Patterns and Best Practices</div>
+
+    <div class="flywheel-layout" style="gap:16px;">
+      <div class="flywheel-text">
+        <h2>The AI Native<br/>Dev Flywheel</h2>
+        <p>Trust compounds. Delegation accelerates.<br/>The more you use it, the better it gets.</p>
+      </div>
+      <div class="flywheel-img" style="border:none;background:transparent;box-shadow:none;">
+        <img src="assets/flywheel_box.png" alt="AI Native Dev Flywheel — Better Primitives → Reliable Results → Higher Trust → More Delegation → Developer Feedback" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SLIDE 6: Questions (new) ════ -->
+  <div class="slide" data-slide="6" data-section="3" role="group" aria-roledescription="slide" aria-label="Slide 7 of 18: Questions">
+    <div class="page-num"></div>
+    <div class="page-tag"><span class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple);"></span> Iteration Patterns and Best Practices</div>
+    <h1 class="headline" style="font-size:clamp(1.6rem,3.2vw,2.6rem); margin-bottom:28px;">Questions</h1>
+
+    <div class="question-list">
+      <div class="question-row">
+        <div class="q-mark">?</div>
+        <div class="q-text">When to accept suggestions</div>
+      </div>
+      <div class="question-row">
+        <div class="q-mark">?</div>
+        <div class="q-text">When to start over</div>
+      </div>
+      <div class="question-row">
+        <div class="q-mark">?</div>
+        <div class="q-text">When to start a new chat session</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SLIDE 7: Spec-driven development (en11) ════ -->
+  <div class="slide" data-slide="7" data-section="3" role="group" aria-roledescription="slide" aria-label="Slide 8 of 18: Spec-driven development">
+    <div class="page-num"></div>
+    <div class="page-tag"><span class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple);"></span> Iteration Patterns and Best Practices</div>
+    <h1 class="headline" style="font-size:clamp(1.4rem,2.8vw,2.2rem); margin-bottom:24px;">Spec-driven development</h1>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:900px; width:100%; margin-bottom:20px;">
+      <div style="border:1px solid var(--border); border-radius:var(--r-lg); background:linear-gradient(135deg,rgba(58,175,255,.08),transparent 60%),var(--bg-1); padding:28px 26px;">
+        <h3 style="color:var(--cyan-soft); font-size:1.1rem; font-weight:700; margin-bottom:10px;">SpecKit</h3>
+        <p style="color:var(--text-1); font-size:.95rem; line-height:1.55;">A rigorous framework for Spec Driven Development.</p>
+      </div>
+      <div style="border:1px solid var(--border); border-radius:var(--r-lg); background:linear-gradient(135deg,rgba(179,146,240,.08),transparent 60%),var(--bg-1); padding:28px 26px;">
+        <h3 style="color:var(--purple); font-size:1.1rem; font-weight:700; margin-bottom:10px;">Spec Driven Development</h3>
+        <p style="color:var(--text-1); font-size:.95rem; line-height:1.55;">A methodology for producing deterministic, reviewable output from AI agents.</p>
+      </div>
+    </div>
+
+    <div class="spec-insight" style="max-width:900px; width:100%;">
+      <div class="num">19 ↔ 19</div>
+      <div>
+        <div style="color:var(--text-0);font-weight:600;font-size:.95rem;">Repos into context vs Specs into context</div>
+        <div style="color:var(--text-2);font-size:.82rem;">Each component gets its own spec — one-to-one mapping of intent to implementation.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SLIDE 8: Quality Automation Workflows (v22) ════ -->
+  <div class="slide" data-slide="8" data-section="3" role="group" aria-roledescription="slide" aria-label="Slide 9 of 18: Quality Automation Workflows">
+    <div class="page-num"></div>
+    <div class="page-tag"><span class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple);"></span> Iteration Patterns and Best Practices</div>
+    <h1 class="headline" style="font-size:clamp(1.4rem,2.8vw,2.2rem); margin-bottom:24px;">Quality Automation Workflows</h1>
+
+    <div class="flow-steps" style="margin-bottom:16px;">
+      <div class="flow-step" style="position:relative;">
+        <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.7rem;color:#fff;background:var(--cyan);">1</div>
+        <h3>Write</h3>
+        <p>Developer writes code with Copilot assistance</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="flow-step" style="position:relative;">
+        <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.7rem;color:#fff;background:var(--green);">2</div>
+        <h3>Validate</h3>
+        <p>Agent runs tests, linters, and security scans</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="flow-step" style="position:relative;">
+        <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.7rem;color:#fff;background:var(--purple);">3</div>
+        <h3>Fix</h3>
+        <p>Copilot suggests fixes for failing checks</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="flow-step" style="position:relative;">
+        <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.7rem;color:#fff;background:var(--gold);">4</div>
+        <h3>Ship</h3>
+        <p>Verified code merges with confidence</p>
+      </div>
+    </div>
+
+    <div class="flow-steps" style="margin-bottom:28px;align-items:stretch;">
+      <div class="flow-step" style="position:relative;border-top:3px solid var(--cyan);">
+        <h3>Design</h3>
+        <p>Component design principals, integrations, dependencies</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="flow-step" style="position:relative;border-top:3px solid var(--green);">
+        <h3>Spec</h3>
+        <p>Concrete implementation details, data structures, libraries, etc.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="flow-step" style="position:relative;border-top:3px solid var(--purple);">
+        <h3>Implement</h3>
+        <p>Copilot writes the code to the spec</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="flow-step" style="position:relative;border-top:3px solid var(--gold);">
+        <h3>Validate</h3>
+        <p>Validation Agent ensures implementation meets Spec, Spec adheres to Design, etc.</p>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="content-card">
+        <h3 style="color:var(--cyan-soft);">Deterministic Guardrails</h3>
+        <p>AI is probabilistic — your quality gates should be deterministic. Copilot works best when paired with:</p>
+        <ul>
+          <li>Strict type checking (TypeScript strict, mypy)</li>
+          <li>Automated linting with zero-tolerance rules</li>
+          <li>Required test coverage minimums</li>
+          <li>Security scanning (CodeQL, Dependabot)</li>
+        </ul>
+      </div>
+      <div class="content-card">
+        <h3 style="color:var(--green-soft);">Feedback Loops / Agentic Flywheel</h3>
+        <p>When AI-generated code fails a check, feed the error back to Copilot for iterative improvement:</p>
+        <ul>
+          <li>Log common AI mistakes in copilot-instructions.md</li>
+          <li>Create scoped instructions for error-prone modules</li>
+          <li>Track patterns of failure to improve prompt engineering</li>
+          <li>Use /clear between fix attempts to avoid context pollution</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SLIDE 9: The two biggest levers for optimizing quality & tokens (v13) ════ -->
+  <div class="slide" data-slide="9" data-section="3" role="group" aria-roledescription="slide" aria-label="Slide 10 of 18: The two biggest levers for optimizing quality and tokens">
+    <div class="page-num"></div>
+    <div class="page-tag"><span class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple);"></span> Iteration Patterns and Best Practices</div>
+
+    <div class="levers-header">
+      <h1>The two biggest levers for<br/><span class="accent">optimizing quality &amp; tokens</span></h1>
+    </div>
+
+    <div class="levers-grid">
+      <div class="lever-col">
+        <div class="lever-icon">&gt;_</div>
+        <h3>Model choice &amp; auto mode</h3>
+        <div class="lever-item">
+          <div class="label">Reasoning models (Opus, GPT-5.5)</div>
+          <div class="desc">for sync tasks like planning, architecture, debugging.</div>
+        </div>
+        <div class="lever-item">
+          <div class="label">Mid-tier models (Sonnet, GPT5.4)</div>
+          <div class="desc">for async implementation.</div>
+        </div>
+        <div class="lever-item">
+          <div class="label">Low-tier (Haiku, GPT-mini)</div>
+          <div class="desc">for small refactorings, repetitive tasks, doc updates.</div>
+        </div>
+        <div class="lever-item">
+          <div class="label">Auto Mode</div>
+          <div class="desc">as the lazy default.</div>
+        </div>
+      </div>
+      <div class="lever-col">
+        <div class="lever-icon">&gt;_</div>
+        <h3>Provide only relevant context</h3>
+        <div class="lever-item">
+          <div class="desc">As <b style="color:var(--text-0);">much as required</b>, as little as necessary.</div>
+        </div>
+        <div class="lever-item">
+          <div class="desc">Context Engineering as your <b style="color:var(--text-0);">guidance and upskill potential</b>.</div>
+        </div>
+        <div class="lever-item">
+          <div class="desc">Compacting sessions can be helpful – but they can also lead to valuable information being lost. <span class="underline">Used it cautiously.</span></div>
+        </div>
+        <div class="lever-item">
+          <div class="desc">Use <b style="color:var(--text-0);">/clear often</b>, for each new task.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SLIDE 10: Designing Agentic Workloads (new) ════ -->
+  <div class="slide" data-slide="10" data-section="3" role="group" aria-roledescription="slide" aria-label="Slide 11 of 18: Designing Agentic Workloads">
+    <div class="page-num"></div>
+    <div class="page-tag"><span class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple);"></span> Iteration Patterns and Best Practices</div>
+
+    <div class="wl-header">
+      <div class="eyebrow">Designing Agentic Workloads</div>
+      <h1>The right <b>Mode</b> with the right<br/><b>Model</b> and the right <b>Context</b>.</h1>
+    </div>
+
+    <div class="wl-flow">
+      <div class="wl-step">
+        <h3>Spec</h3>
+        <div class="wl-cmd">/research<br/>/plan</div>
+        <div class="wl-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 19 8"/></svg></div>
+        <div class="wl-pill">Opus 4.8</div>
+      </div>
+      <div class="wl-step">
+        <h3>Challenge</h3>
+        <div class="wl-cmd">/rubber-duck</div>
+        <div class="wl-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l2.2 1.6 2.7-.1.9 2.6 2.2 1.6-.8 2.6.8 2.6-2.2 1.6-.9 2.6-2.7-.1L12 21.5l-2.2-1.6-2.7.1-.9-2.6-2.2-1.6.8-2.6-.8-2.6 2.2-1.6.9-2.6 2.7.1z"/><path d="M9.8 9.5a2.3 2.3 0 0 1 4.4.9c0 1.5-2.2 2-2.2 3.1"/><line x1="12" y1="16.5" x2="12.01" y2="16.5"/></svg></div>
+        <div class="wl-pill">GPT 5.6 Sol</div>
+      </div>
+      <div class="wl-step">
+        <h3>Code</h3>
+        <div class="wl-cmd">/fleet /orchestrate</div>
+        <div class="wl-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 7 4 12 9 17"/><polyline points="15 7 20 12 15 17"/></svg></div>
+        <div class="wl-pill">Sonnet 5</div>
+      </div>
+      <div class="wl-step">
+        <h3>Review</h3>
+        <div class="wl-cmd">/review<br/>Tests, Linters, CCR</div>
+        <div class="wl-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><line x1="16" y1="16" x2="21" y2="21"/></svg></div>
+        <div class="wl-pill">GPT 5.5</div>
+      </div>
+      <div class="wl-step">
+        <h3>Secure</h3>
+        <div class="wl-cmd">/security-review<br/>Code Security</div>
+        <div class="wl-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><polyline points="9 12 11.2 14.2 15.2 10"/></svg></div>
+        <div class="wl-pill">Kimi K2.5</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SLIDE 11: Model selection (en13) ════ -->
+  <div class="slide" data-slide="11" data-section="3" role="group" aria-roledescription="slide" aria-label="Slide 12 of 18: Model selection">
+    <div class="page-num"></div>
+    <div class="page-tag"><span class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple);"></span> Iteration Patterns and Best Practices</div>
+    <h1 class="headline" style="font-size:clamp(1.4rem,2.8vw,2.2rem); margin-bottom:24px;">Model selection</h1>
+
+    <div style="text-align:center;">
+      <p style="color:var(--text-2);font-size:1.05rem;margin-bottom:28px;max-width:700px;margin-left:auto;margin-right:auto;">
+        GitHub Copilot supports multiple models — choose the right one for cost, speed, and quality trade-offs.
+      </p>
+      <a href="./assets/copilot-models-cli.html?clawpilotTheme=dark" target="_blank" rel="noopener" class="model-ref-btn"
+         style="display:inline-flex;align-items:center;gap:10px;padding:14px 32px;background:linear-gradient(135deg,var(--cyan),var(--violet));color:#fff;font-weight:700;font-size:1.05rem;border-radius:999px;text-decoration:none;transition:transform .2s var(--ease),box-shadow .2s var(--ease);box-shadow:var(--shadow-sm);">
+        Model reference ↗
+      </a>
+    </div>
+  </div>
+
+  <!-- ════ SLIDE 12: Your Prompt (v14) ════ -->
+  <div class="slide" data-slide="12" data-section="3" role="group" aria-roledescription="slide" aria-label="Slide 13 of 18: Your Prompt">
+    <div class="page-num"></div>
+    <div class="page-tag"><span class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple);"></span> Iteration Patterns and Best Practices</div>
+
+    <div class="guide-header">
+      <div class="eyebrow">Guiding the agent</div>
+      <h1>Your Prompt</h1>
+    </div>
+
+    <div class="guide-grid">
+      <div class="guide-cell">
+        <div class="check">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h3>Be precise.</h3>
+        <p>Short and Sharp descriptions.</p>
+      </div>
+      <div class="guide-cell">
+        <div class="check">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h3>Add an imperative goal</h3>
+        <p>Tell the agent what to do</p>
+      </div>
+      <div class="guide-cell">
+        <div class="check">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h3>Add known context</h3>
+        <p>Files, Folders, Websites, etc.</p>
+      </div>
+    </div>
+
+    <div class="guide-bar">
+      <div style="display:flex;gap:2px;">
+        <div class="guide-bar-item" style="background:var(--bg-2);border-radius:6px 0 0 6px;border:1px solid var(--border);">
+          <div class="guide-bar-label">Always on</div>
+          <div style="color:var(--text-1);font-size:.7rem;">System &amp; Tools</div>
+        </div>
+        <div class="guide-bar-item" style="background:rgba(139,111,239,.2);border-radius:0 6px 6px 0;border:1px solid var(--violet);">
+          <div class="guide-bar-label">Always on</div>
+          <div style="color:var(--purple);font-size:.7rem;">Prompt</div>
+        </div>
+      </div>
+      <div style="flex:1;background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.3);border-radius:6px;margin-left:8px;"></div>
+    </div>
+  </div>
+
+  <!-- ════ SLIDE 13: Example of prompt discipline (new) ════ -->
+  <div class="slide" data-slide="13" data-section="3" role="group" aria-roledescription="slide" aria-label="Slide 14 of 18: Example of prompt discipline">
+    <div class="page-num"></div>
+    <div class="page-tag"><span class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple);"></span> Iteration Patterns and Best Practices</div>
+
+    <div class="pd-card">
+      <div class="pd-head">
+        <h1>Example of prompt discipline</h1>
+        <p>Shorter, sharper prompts don't just save input tokens; they cut the volume of output and tool calls.</p>
+      </div>
+      <div class="pd-grid">
+        <div class="pd-col bad">
+          <div class="pd-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          <h3>Expensive</h3>
+          <div class="pd-prompt"><span class="ps">$ copilot</span>"Look at my repo and figure out why users are getting 500 errors on login. Check the auth code, database layer, middleware, and logs. Fix it."</div>
+          <div class="pd-note">Scans many files, reads large chunks, burns tokens before narrowing down.</div>
+        </div>
+        <div class="pd-col good">
+          <div class="pd-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <h3>Efficient</h3>
+          <div class="pd-prompt"><span class="ps">$ copilot</span>"In @src/auth/login.ts, method handleLogin returns 500 when email has unicode chars. Propose a fix."</div>
+          <div class="pd-note">Targets one file, one function, one case.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SLIDE 14: Research → Plan → Implement (v15) ════ -->
+  <div class="slide" data-slide="14" data-section="3" role="group" aria-roledescription="slide" aria-label="Slide 15 of 18: Research to Plan to Implement">
+    <div class="page-num"></div>
+    <div class="page-tag"><span class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple);"></span> Iteration Patterns and Best Practices</div>
+
+    <div class="rpi-layout">
+      <div class="eyebrow">Divide and conquer your work</div>
+      <h1>Research → Plan → Implement</h1>
+
+      <div class="rpi-prompt">"I want to change X.<br/>What files are relevant?"</div>
+
+      <div class="rpi-row">
+        <div class="rpi-label">
+          <div class="cmd">/research</div>
+          <div class="model">Gemini 2.5 Pro</div>
+        </div>
+        <div class="rpi-blocks">
+          <div class="rpi-block sys">System<br/>Prompt</div>
+          <div class="rpi-block prompt">Prompt</div>
+          <div class="rpi-block file bad">File</div>
+          <div class="rpi-block file bad">File</div>
+          <div class="rpi-block file ok">File</div>
+          <div class="rpi-block file bad">File</div>
+          <div class="rpi-block file bad">File</div>
+          <div class="rpi-block file ok">File</div>
+          <div class="rpi-block plan">Plan<br/>Input</div>
+          <div class="rpi-bar"></div>
+        </div>
+      </div>
+
+      <div class="rpi-conn"></div>
+
+      <div class="rpi-row">
+        <div class="rpi-label">
+          <div class="cmd">/plan</div>
+          <div class="model">Opus 4.6</div>
+        </div>
+        <div class="rpi-blocks">
+          <div class="rpi-block sys">System<br/>Prompt</div>
+          <div class="rpi-block prompt">Prompt</div>
+          <div class="rpi-block plan">Plan<br/>Input</div>
+          <div class="rpi-block file">File</div>
+          <div class="rpi-block file">File</div>
+          <div class="rpi-block reason">Reasoning</div>
+          <div class="rpi-block spec">Precise<br/>Spec</div>
+          <div class="rpi-bar"></div>
+        </div>
+      </div>
+
+      <div class="rpi-conn"></div>
+
+      <div class="rpi-row">
+        <div class="rpi-label">
+          <div class="cmd">/implement</div>
+          <div class="model">GPT 5.4 mini</div>
+        </div>
+        <div class="rpi-blocks">
+          <div class="rpi-block sys">System<br/>Prompt</div>
+          <div class="rpi-block prompt">Prompt</div>
+          <div class="rpi-block spec">Precise<br/>Spec</div>
+          <div class="rpi-block file">File</div>
+          <div class="rpi-block file">File</div>
+          <div class="rpi-block change">Change Calls</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SLIDE 15: Power User Guidance (v17) ════ -->
+  <div class="slide" data-slide="15" data-section="3" role="group" aria-roledescription="slide" aria-label="Slide 16 of 18: Power User Guidance">
+    <div class="page-num"></div>
+    <div class="page-tag"><span class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple);"></span> Iteration Patterns and Best Practices</div>
+
+    <div class="power-layout">
+      <div class="power-left">
+        <h1>Power User Guidance</h1>
+        <p class="caveat">These Tips require good <b>knowledge and time-invest</b>, as they are conditional and / or come with trade-offs.</p>
+      </div>
+      <div class="power-tips">
+        <div class="power-tip">
+          <h3>Think in Code</h3>
+          <p>Prefer creating scripts to analyze files over feeding it to AI.</p>
+        </div>
+        <div class="power-tip">
+          <h3>Consider CLIs vs. MCPs</h3>
+          <p>CLI Tools can be more optimal in certain scenarios due to less static tokens.</p>
+        </div>
+        <div class="power-tip">
+          <h3>Improve Shell Outputs</h3>
+          <p>Shell outputs can be extremely long – use something like rtk to reduce their outputs.</p>
+        </div>
+        <div class="power-tip">
+          <h3>Run "/chronicle tip" regularly</h3>
+          <p>Analyze your usage in Copilot CLI to find improvement areas.</p>
+        </div>
+        <div class="power-tip">
+          <h3>Collapse Tool Calls</h3>
+          <p>Using something like copilot-codeact-plugin can help collapse multiple tool calls into one.</p>
+        </div>
+        <div class="power-tip">
+          <h3>Model Specific Context Optimization</h3>
+          <p>Models behave different and can be tweaked.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SLIDE 16: Q&A (v28) ════ -->
+  <div class="slide" data-slide="16" data-section="3" role="group" aria-roledescription="slide" aria-label="Slide 17 of 18: Q&A">
+    <div class="page-num"></div>
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;">
+      <h1 class="headline" style="font-size:clamp(3rem,8vw,6rem);margin-bottom:24px;">Q<span style="color:var(--cyan);">&amp;</span>A</h1>
+      <p style="color:var(--text-2);font-size:1.2rem;max-width:500px;">Thank you! Questions, comments, or discussion?</p>
+    </div>
+  </div>
+
+
+  <!-- ════ SLIDE 17: Session Roadmap (new) ════ -->
+  <div class="slide" data-slide="17" data-section="3" role="group" aria-roledescription="slide" aria-label="Slide 18 of 18: Session Roadmap">
+    <div class="page-num"></div>
+    <div class="page-tag"><span class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple);"></span> Iteration Patterns and Best Practices</div>
+
+    <div class="ses-header">
+      <div class="eyebrow">What&rsquo;s next</div>
+      <h1>Session Roadmap</h1>
+    </div>
+
+    <div class="ses-grid">
+      <div class="ses-card">
+        <div class="ses-top"><span class="ses-pill">Session 0</span><span class="ses-level">Workshop</span></div>
+        <h3>Prereqs &amp; GitHub Org Setup</h3>
+        <p class="ses-desc">Discovery and prework required to get GitHub Copilot configured and enabled for the organization.</p>
+        <ul class="ses-list">
+          <li><b>Discovery</b> &mdash; current tooling, IDEs, repo topology, and team structure</li>
+          <li><b>Licensing &amp; seats</b> &mdash; plan selection, seat assignment, and rollout groups</li>
+          <li><b>Org &amp; enterprise policies</b> &mdash; what to enable, restrict, and audit</li>
+          <li><b>Security &amp; compliance</b> &mdash; content exclusion, data handling, and approvals</li>
+          <li><b>Access &amp; identity</b> &mdash; SSO, teams, and permission alignment</li>
+          <li><b>Pilot plan</b> &mdash; first repos, first teams, and success measures</li>
+        </ul>
+      </div>
+      <div class="ses-card s1">
+        <div class="ses-top"><span class="ses-pill">Session 1</span><span class="ses-level">Foundations</span></div>
+        <h3>Copilot Overview, Usage-Based Billing &amp; Token Optimization</h3>
+        <p class="ses-desc">What Copilot does today, how it lands in real brownfield codebases, and how to keep consumption efficient as you scale.</p>
+        <ul class="ses-list">
+          <li><b>Copilot in brownfield &amp; modernization projects</b> &mdash; where it helps most</li>
+          <li><b>Safe collaboration patterns for legacy code</b> &mdash; small blast radius, test-first, incremental refactors</li>
+          <li><b>Agentic configuration files</b> &mdash; an introduction to agentic primitives</li>
+          <li><b>Spec-driven development</b> &mdash; why the spec is the unit of work</li>
+          <li><b>Agentic automation overview</b> &mdash; what can be delegated end to end</li>
+          <li><b>Usage-based billing &amp; token optimization</b> &mdash; premium requests, model selection, and power-user tips</li>
+        </ul>
+      </div>
+      <div class="ses-card s2">
+        <div class="ses-top"><span class="ses-pill">Session 2</span><span class="ses-level">Deep Dive</span></div>
+        <h3>Agentic Primitives Deep Dive</h3>
+        <p class="ses-desc">A deeper look at the building blocks of agentic development processes &mdash; and the judgment to pick the right one.</p>
+        <ul class="ses-list">
+          <li><b>copilot-instructions</b> &mdash; repo-wide standing context and guardrails</li>
+          <li><b>Path-scoped instructions</b> &mdash; targeted guidance that doesn&rsquo;t bleed across the repo</li>
+          <li><b>Skills</b> &mdash; packaged, reusable procedures loaded on demand</li>
+          <li><b>MCP</b> &mdash; connecting agents to real tools and live systems</li>
+          <li><b>Prompt files, specs &amp; custom agents</b> &mdash; reproducible, reviewable work</li>
+          <li><b>When to use each and why</b> &mdash; selection criteria, anti-patterns, and cost impact</li>
+        </ul>
+      </div>
+      <div class="ses-card s3">
+        <div class="ses-top"><span class="ses-pill">Session 3</span><span class="ses-level">Advanced</span></div>
+        <h3>Agentic Workflows &amp; Orchestration</h3>
+        <p class="ses-desc">Composing primitives into durable workflows &mdash; from a single reliable loop to coordinated multi-agent orchestration.</p>
+        <ul class="ses-list">
+          <li><b>Design &rarr; Spec &rarr; Implement &rarr; Validate</b> &mdash; the end-to-end workflow</li>
+          <li><b>Loop engineering</b> &mdash; making each pass faster, cheaper, and more reliable</li>
+          <li><b>The agentic flywheel</b> &mdash; feeding validation evidence back into your primitives</li>
+          <li><b>Simple orchestration</b> &mdash; single-agent, single-repo, well-scoped tasks</li>
+          <li><b>Advanced orchestration</b> &mdash; parallel subagents, delegation, and handoffs</li>
+          <li><b>Guardrails at scale</b> &mdash; review gates, validation, and human checkpoints</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom nav -->
+<div class="arrow-nav" role="toolbar" aria-label="Slide navigation">
+  <button class="arrow-btn ghost" id="shortcutsBtn" title="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 2-3 4"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+  </button>
+  <button class="arrow-btn ghost" id="overviewBtn" title="Slide overview (G)" aria-label="Show all slides overview">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+  </button>
+  <div class="nav-divider"></div>
+  <button class="arrow-btn" id="prev" disabled aria-label="Previous slide">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <span class="page-indicator" id="pageInd" aria-live="polite">1 / 18</span>
+  <button class="arrow-btn" id="next" aria-label="Next slide">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+  <div class="nav-divider"></div>
+  <button class="arrow-btn ghost" id="fullscreenBtn" title="Toggle fullscreen (F)" aria-label="Toggle fullscreen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+  </button>
+</div>
+
+<button class="key-hint" id="keyHintBtn" type="button">
+  <kbd>&#8592;</kbd><kbd>&#8594;</kbd> navigate &nbsp; <kbd>?</kbd> all shortcuts
+</button>
+
+<!-- ── Overview / grid mode ─────────────────────── -->
+<div class="overview-overlay" id="overviewOverlay" role="dialog" aria-modal="true" aria-label="Slide overview">
+  <button class="overview-close" id="overviewCloseBtn" aria-label="Close overview">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <div class="overview-header">
+    <h2>All Slides</h2>
+    <p>Click any slide to jump straight to it — or press Esc to return.</p>
+  </div>
+  <div class="overview-grid" id="overviewGrid"></div>
+</div>
+
+<!-- ── Keyboard shortcuts modal ──────────────────── -->
+<div class="shortcuts-overlay" id="shortcutsOverlay" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+  <div class="shortcuts-card">
+    <h3>Keyboard shortcuts</h3>
+    <div class="shortcuts-list">
+      <div class="shortcuts-row"><span>Next slide</span><span class="keys"><kbd>&#8594;</kbd> <kbd>Space</kbd></span></div>
+      <div class="shortcuts-row"><span>Previous slide</span><span class="keys"><kbd>&#8592;</kbd></span></div>
+      <div class="shortcuts-row"><span>First / last slide</span><span class="keys"><kbd>Home</kbd> <kbd>End</kbd></span></div>
+      <div class="shortcuts-row"><span>Slide overview</span><span class="keys"><kbd>G</kbd></span></div>
+      <div class="shortcuts-row"><span>Toggle fullscreen</span><span class="keys"><kbd>F</kbd></span></div>
+      <div class="shortcuts-row"><span>This help</span><span class="keys"><kbd>?</kbd></span></div>
+      <div class="shortcuts-row"><span>Close overlay</span><span class="keys"><kbd>Esc</kbd></span></div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+(() => {
+  const slides = document.querySelectorAll('.slide');
+  const total  = slides.length;
+  let cur = 0;
+
+  const prevBtn  = document.getElementById('prev');
+  const nextBtn  = document.getElementById('next');
+  const pageInd  = document.getElementById('pageInd');
+  const rail     = document.getElementById('rail');
+  const progressBar = document.getElementById('progressBar');
+  const seg1Fill = document.getElementById('seg1Fill');
+  const seg2Fill = document.getElementById('seg2Fill');
+  const seg3Fill = document.getElementById('seg3Fill');
+
+  const sectionOf = i => +slides[i].dataset.section;
+
+  // Section slide-index ranges, derived from the DOM (single source of truth)
+  const sectionRanges = {};
+  slides.forEach((s, i) => {
+    const sec = sectionOf(i);
+    if (!sectionRanges[sec]) sectionRanges[sec] = { start: i, end: i };
+    sectionRanges[sec].end = i;
+  });
+  const segFills = { 1: seg1Fill, 2: seg2Fill, 3: seg3Fill };
+
+  // Short labels for the side rail + overview grid (same 18 slides, same order)
+  const railLabels = [
+    'Agenda','Spec Definitions','Introspection','Safe Patterns',
+    'Agent Configs','Flywheel','Questions','Spec-Driven',
+    'Quality Flow','Two Levers','Agentic Workloads','Model Selection',
+    'Your Prompt','Prompt Discipline','R→P→I','Power Users','Q&A','Sessions'
+  ];
+
+  // Build rail dots, grouped by section with separators
+  railLabels.forEach((label, i) => {
+    if (i > 0 && sectionOf(i) !== sectionOf(i - 1)) {
+      const sep = document.createElement('div');
+      sep.className = 'rail-sep';
+      rail.appendChild(sep);
+    }
+    const a = document.createElement('a');
+    a.dataset.idx = i;
+    a.dataset.label = label;
+    a.href = 'javascript:void(0)';
+    a.setAttribute('role', 'button');
+    a.setAttribute('aria-label', 'Go to slide ' + (i + 1) + ': ' + label);
+    a.style.setProperty('--dot-color', `var(--sec-${sectionOf(i)})`);
+    if (i === 0) a.classList.add('active');
+    a.addEventListener('click', () => go(i));
+    rail.appendChild(a);
+  });
+  const railDots = rail.querySelectorAll('a');
+
+  // Update page numbers dynamically
+  slides.forEach((s, i) => {
+    const pn = s.querySelector('.page-num');
+    if (pn) pn.textContent = String(i + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
+  });
+
+  // Build the overview / grid-mode cards
+  const overviewGrid = document.getElementById('overviewGrid');
+  const overviewCards = [];
+  railLabels.forEach((label, i) => {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'overview-card';
+    card.style.setProperty('--card-color', `var(--sec-${sectionOf(i)})`);
+    card.setAttribute('aria-label', 'Jump to slide ' + (i + 1) + ': ' + label);
+    card.innerHTML =
+      '<div class="ov-top"><span class="ov-num">' + String(i + 1).padStart(2, '0') + '</span><span class="ov-bar"></span></div>' +
+      '<div class="ov-title">' + label + '</div>';
+    card.addEventListener('click', () => { go(i); closeOverview(); });
+    overviewGrid.appendChild(card);
+    overviewCards.push(card);
+  });
+
+  function updateProgress() {
+    Object.keys(sectionRanges).forEach(secKey => {
+      const { start, end } = sectionRanges[secKey];
+      const fillEl = segFills[secKey];
+      if (!fillEl) return;
+      let pct;
+      if (cur > end) pct = 100;
+      else if (cur < start) pct = 0;
+      else pct = ((cur - start + 1) / (end - start + 1)) * 100;
+      fillEl.style.width = pct + '%';
+    });
+    progressBar.setAttribute('aria-valuenow', cur + 1);
+  }
+
+  function go(idx) {
+    if (idx < 0 || idx >= total || idx === cur) return;
+    const dir = idx > cur ? 1 : -1;
+    const prev = cur;
+
+    slides[prev].classList.remove('active');
+    slides[prev].classList.add(dir > 0 ? 'exit-left' : 'exit-right');
+
+    cur = idx;
+    const incomingClass = dir > 0 ? 'incoming-right' : 'incoming-left';
+    slides[cur].classList.add('no-transition', incomingClass);
+    void slides[cur].offsetWidth; // flush the instant "incoming" position before animating in
+    slides[cur].classList.remove('no-transition', incomingClass);
+    slides[cur].classList.add('active');
+
+    setTimeout(() => {
+      slides[prev].classList.remove('exit-left', 'exit-right');
+    }, 550);
+
+    prevBtn.disabled = cur === 0;
+    nextBtn.disabled = cur === total - 1;
+    pageInd.textContent = (cur + 1) + ' / ' + total;
+
+    railDots.forEach(d => d.classList.toggle('active', +d.dataset.idx === cur));
+    overviewCards.forEach((c, i) => c.classList.toggle('current', i === cur));
+
+    updateProgress();
+  }
+
+  // Expose globally for brand link
+  window.goToSlide = go;
+
+  prevBtn.addEventListener('click', () => go(cur - 1));
+  nextBtn.addEventListener('click', () => go(cur + 1));
+
+  // ── Overview / grid mode ────────────────────────
+  const overviewOverlay = document.getElementById('overviewOverlay');
+  const overviewBtn = document.getElementById('overviewBtn');
+  const overviewCloseBtn = document.getElementById('overviewCloseBtn');
+  function openOverview() {
+    overviewCards.forEach((c, i) => c.classList.toggle('current', i === cur));
+    overviewOverlay.classList.add('open');
+  }
+  function closeOverview() { overviewOverlay.classList.remove('open'); }
+  overviewBtn.addEventListener('click', openOverview);
+  overviewCloseBtn.addEventListener('click', closeOverview);
+  overviewOverlay.addEventListener('click', e => { if (e.target === overviewOverlay) closeOverview(); });
+
+  // ── Keyboard shortcuts modal ────────────────────
+  const shortcutsOverlay = document.getElementById('shortcutsOverlay');
+  const shortcutsBtn = document.getElementById('shortcutsBtn');
+  const keyHintBtn = document.getElementById('keyHintBtn');
+  function openShortcuts() { shortcutsOverlay.classList.add('open'); }
+  function closeShortcuts() { shortcutsOverlay.classList.remove('open'); }
+  shortcutsBtn.addEventListener('click', openShortcuts);
+  keyHintBtn.addEventListener('click', openShortcuts);
+  shortcutsOverlay.addEventListener('click', e => { if (e.target === shortcutsOverlay) closeShortcuts(); });
+
+  // ── Fullscreen toggle ────────────────────────────
+  const fullscreenBtn = document.getElementById('fullscreenBtn');
+  fullscreenBtn.addEventListener('click', () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  });
+
+  document.addEventListener('keydown', e => {
+    const overviewOpen = overviewOverlay.classList.contains('open');
+    const shortcutsOpen = shortcutsOverlay.classList.contains('open');
+
+    if (e.key === 'Escape') {
+      if (overviewOpen) closeOverview();
+      if (shortcutsOpen) closeShortcuts();
+      return;
+    }
+    if (overviewOpen || shortcutsOpen) return; // don't drive slides behind an open overlay
+
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(cur + 1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); go(cur - 1); }
+    if (e.key === 'Home') { e.preventDefault(); go(0); }
+    if (e.key === 'End') { e.preventDefault(); go(total - 1); }
+    if (e.key === 'g' || e.key === 'G') { e.preventDefault(); openOverview(); }
+    if (e.key === 'f' || e.key === 'F') { e.preventDefault(); fullscreenBtn.click(); }
+    if (e.key === '?') { e.preventDefault(); openShortcuts(); }
+  });
+
+  let tx = 0;
+  document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) go(cur + (dx < 0 ? 1 : -1));
+  });
+
+  // Agenda item click
+  document.querySelectorAll('.agenda-item[data-goto]').forEach(item => {
+    item.addEventListener('click', () => go(+item.dataset.goto));
+  });
+
+  // Initial state
+  pageInd.textContent = '1 / ' + total;
+  updateProgress();
+})();
+</script>
+</body>
+</html>
