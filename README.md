@@ -14,6 +14,7 @@ shows one tile per presentation.
 | Presentation | Folder | Topics |
 |---|---|---|
 | GitHub Copilot Sandboxing and Spec Driven Development | [`Pres-GHCP_sandbox_sdd`](presentations/Pres-GHCP_sandbox_sdd/) | Coding agent and local sandboxes, spec driven development workflow |
+| Copilot KPIs: Measuring What Matters | [`Pres-GHCP_KPIs`](presentations/Pres-GHCP_KPIs/) | Outcome-based KPIs, delivery health, developer effectiveness, SPACE |
 | Copilot Champions Deep Dive Session 1 | [`Pres-GHCP_champions_brownfield_primitives_iterations`](presentations/Pres-GHCP_champions_brownfield_primitives_iterations/) | Brownfield modernization, agent configuration, agentic primitives, iteration patterns |
 
 ### Not yet migrated
