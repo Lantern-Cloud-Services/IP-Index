@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Autonomous SDLC</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --panel: #121826;
+    --panel-2: #172033;
+    --border: #243049;
+    --text: #e6edf3;
+    --muted: #8b98ad;
+    --accent: #7c5cff;
+    --accent-2: #2fd6c4;
+    --accent-3: #ff7ab6;
+    --warn: #f5b84a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Inter, Roboto, sans-serif; overflow: hidden; }
+
+  .deck { position: relative; width: 100vw; height: 100vh; }
+  .slide {
+    position: absolute; inset: 0; padding: 4.5vh 5vw 8vh;
+    display: flex; flex-direction: column; gap: 2.4vh;
+    opacity: 0; transform: translateX(40px); pointer-events: none;
+    transition: opacity .5s ease, transform .5s ease;
+    background:
+      radial-gradient(1200px 600px at 100% -10%, rgba(124,92,255,.18), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(47,214,196,.12), transparent 60%),
+      var(--bg);
+  }
+  .slide.active { opacity: 1; transform: none; pointer-events: auto; }
+
+  .eyebrow { font-size: clamp(11px, 1.1vw, 14px); letter-spacing: .18em; text-transform: uppercase;
+    color: var(--accent-2); font-weight: 600; }
+  h1 { font-size: clamp(26px, 3.2vw, 46px); line-height: 1.1; font-weight: 700; letter-spacing: -.01em; }
+  h1 .grad { background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .thesis { font-size: clamp(14px, 1.45vw, 20px); color: var(--muted); max-width: 70ch; }
+  .thesis b { color: var(--text); }
+
+  .card { background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.6vh 1.2vw; }
+  .card h3 { font-size: clamp(13px, 1.2vw, 17px); margin-bottom: .6vh; display: flex; align-items: center; gap: .5em; }
+  .card p, .card li { font-size: clamp(11px, 1.02vw, 14.5px); color: var(--muted); line-height: 1.45; }
+  .card p b, .card li b { color: var(--text); font-weight: 600; }
+
+  /* Slide 1 */
+  .s1 { gap: 2.1vh; padding-top: 4vh; }
+  .s1 .flow { margin-top: 1.6vh; }
+  .s1 h1 { font-size: clamp(24px, 2.9vw, 42px); }
+  .s1-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 2vw; }
+  .s1-head .l { display: flex; flex-direction: column; gap: .9vh; }
+  .brand { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1vh; }
+  .brand .logos { display: flex; align-items: center; gap: 1vw; font-weight: 600; font-size: clamp(14px, 1.35vw, 20px); }
+  .brand .logos span { display: flex; align-items: center; gap: .45em; }
+  .brand .logos svg { width: 1.2em; height: 1.2em; }
+  .brand .sep { width: 1px; height: 1.6em; background: var(--border); }
+  .brand .tagline { font-size: clamp(8px, .68vw, 10px); letter-spacing: .25em; color: var(--muted); text-align: right; line-height: 1.8; }
+
+  .flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1.5vw; margin-top: 1.4vh; }
+  .step { --c: var(--accent); position: relative; border: 1px solid var(--c); border-radius: 14px;
+    padding: 2.4vh .8vw 1.2vh; display: flex; flex-direction: column; align-items: center; text-align: center; gap: .8vh;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--c) 14%, transparent), rgba(18,24,38,.55) 60%);
+    box-shadow: 0 0 26px -10px var(--c); }
+  .step .n { position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%);
+    width: clamp(22px, 1.9vw, 30px); height: clamp(22px, 1.9vw, 30px); border-radius: 50%;
+    background: var(--c); color: #0b0f17; font-weight: 800; display: grid; place-items: center;
+    font-size: clamp(11px, .95vw, 14px); box-shadow: 0 0 14px var(--c); }
+  .step .k { font-size: clamp(9px, .75vw, 11px); letter-spacing: .2em; text-transform: uppercase; color: var(--c); font-weight: 700; }
+  .step h3 { font-size: clamp(13px, 1.15vw, 17px); line-height: 1.2; margin-top: -.4vh; }
+  .step .ic { width: clamp(30px, 2.9vw, 46px); height: clamp(30px, 2.9vw, 46px); color: var(--c);
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--c) 55%, transparent)); }
+  .step ul { list-style: none; text-align: left; display: flex; flex-direction: column; gap: .6vh; width: 100%; }
+  .step li { font-size: clamp(10px, .88vw, 13px); color: var(--muted); line-height: 1.35; padding-left: 1em; position: relative; }
+  .step li b { color: var(--text); font-weight: 600; }
+  .step li::before { content: "•"; color: var(--c); position: absolute; left: 0; }
+  .step .lbl { margin-top: auto; width: 100%; font-size: clamp(8px, .66vw, 10.5px); font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 50%, transparent);
+    border-radius: 99px; padding: .5em .6em; }
+  .step:not(:last-child)::after { content: "›"; position: absolute; right: -.75vw; top: 50%; transform: translate(50%, -50%);
+    color: var(--c); font-size: clamp(18px, 1.9vw, 30px); font-weight: 700; }
+  .c1 { --c: #3b9eff; } .c2 { --c: #3fd47a; } .c3 { --c: #a77bff; }
+  .c4 { --c: #f5b84a; } .c5 { --c: #2fd6c4; } .c6 { --c: #ff7ab6; }
+
+  .loop { position: relative; height: 2.4vh; margin: 0 4.5%; border: 2px solid rgba(59,158,255,.55); border-top: none; border-radius: 0 0 16px 16px; }
+  .loop::before { content: ""; position: absolute; left: -6px; top: -10px; border: 6px solid transparent; border-top: 0; border-bottom: 10px solid #3b9eff; }
+  .loop .t { position: absolute; left: 50%; bottom: 0; transform: translate(-50%, 50%); background: var(--bg); padding: 0 1.4vw;
+    font-size: clamp(10px, .9vw, 13px); letter-spacing: .3em; color: #3b9eff; font-weight: 700; white-space: nowrap; }
+  .loop-sub { text-align: center; font-size: clamp(10px, .88vw, 13px); color: var(--muted); margin-top: -.2vh; }
+  .loop-sub b { color: var(--text); font-weight: 600; }
+
+  .strip { display: grid; grid-template-columns: 12vw repeat(3, 1fr); align-items: center; gap: 1.4vw;
+    padding: 1.5vh 1.6vw; border: 1px solid var(--border); border-radius: 14px; background: rgba(18,24,38,.65); }
+  .strip.s4 { grid-template-columns: 12vw repeat(4, 1fr); }
+  .strip .lab { font-size: clamp(9px, .8vw, 12px); letter-spacing: .28em; color: #3b9eff; font-weight: 700; text-transform: uppercase; line-height: 1.8; }
+  .strip .it { display: flex; gap: .9vw; align-items: center; }
+  .strip .it + .it { border-left: 1px solid var(--border); padding-left: 1.4vw; }
+  .strip .it svg { flex: none; width: clamp(26px, 2.5vw, 38px); height: clamp(26px, 2.5vw, 38px); }
+  .strip h4 { font-size: clamp(12px, 1.05vw, 15.5px); font-weight: 600; }
+  .strip h4 small { color: var(--muted); font-weight: 400; font-size: .8em; margin-left: .3em; }
+  .strip p { font-size: clamp(10px, .85vw, 12.5px); color: var(--muted); line-height: 1.35; }
+  .strip .it.hl h4 { color: #ff7ab6; }
+  .take { margin-top: auto; padding: 1.4vh 1.4vw; border-left: 4px solid var(--accent-3);
+    background: rgba(255,122,182,.07); border-radius: 0 10px 10px 0; font-size: clamp(13px, 1.3vw, 18px); }
+  .take b { color: var(--accent-3); }
+
+  .c7 { --c: #9ad94f; } .c8 { --c: #ff8a5b; } .c9 { --c: #5b8cff; }
+  .badge { position: absolute; top: 0; width: clamp(22px, 1.9vw, 30px); height: clamp(22px, 1.9vw, 30px); border-radius: 50%;
+    background: var(--c); color: #0b0f17; font-weight: 800; display: grid; place-items: center;
+    font-size: clamp(11px, .95vw, 14px); box-shadow: 0 0 14px var(--c); transform: translateY(-50%); left: 1.1vw; }
+  .glow { position: relative; border: 1px solid var(--c); border-radius: 14px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--c) 14%, transparent), rgba(18,24,38,.55) 65%);
+    box-shadow: 0 0 26px -10px var(--c); }
+  .ico { flex: none; color: var(--c); filter: drop-shadow(0 0 8px color-mix(in srgb, var(--c) 55%, transparent)); }
+  .opill { display: inline-block; font-size: clamp(8px, .66vw, 10.5px); font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 50%, transparent);
+    border-radius: 99px; padding: .45em .9em; }
+
+  /* Slide 2 */
+  .pgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.4vh 1.5vw; margin-top: 1.4vh; flex: 1; min-height: 0; max-height: 52vh; }
+  .pc { display: flex; gap: 1vw; align-items: center; padding: 2vh 1.1vw 1.4vh; }
+  .pc .ico { width: clamp(30px, 2.8vw, 44px); height: clamp(30px, 2.8vw, 44px); }
+  .pc .body { display: flex; flex-direction: column; gap: .5vh; align-items: flex-start; }
+  .pc h3 { font-size: clamp(13px, 1.12vw, 16.5px); line-height: 1.2; }
+  .pc p { font-size: clamp(10px, .86vw, 13px); color: var(--muted); line-height: 1.35; }
+  .pc p b { color: var(--text); font-weight: 600; }
+
+  .pc.glow { border-color: var(--border); background: linear-gradient(180deg, var(--panel-2), var(--panel)); box-shadow: none; }
+  .pc .badge { box-shadow: none; }
+  .pc .ico { filter: none; opacity: .9; }
+  .pc .opill { color: var(--muted); border-color: var(--border); }
+
+  /* Slide 3 */
+  .cgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.4vh 1.5vw; margin-top: 1.4vh; flex: 1; min-height: 0; max-height: 54vh; }
+  .cc { display: flex; flex-direction: column; gap: .7vh; padding: 1.8vh 1.1vw 1.5vh; }
+  .cc .top { display: flex; align-items: center; gap: .7vw; }
+  .cc .ico { width: clamp(24px, 2.2vw, 34px); height: clamp(24px, 2.2vw, 34px); }
+  .cc .co { font-size: clamp(14px, 1.3vw, 19px); font-weight: 700; }
+  .cc .d { font-size: clamp(10px, .84vw, 12.5px); color: var(--muted); line-height: 1.35; }
+  .cc .d b { color: var(--text); font-weight: 600; }
+  .cc .bot { margin-top: auto; display: flex; align-items: flex-end; justify-content: space-between; gap: .6vw; }
+  .cc .m { font-size: clamp(18px, 1.9vw, 30px); font-weight: 800; line-height: 1.05; color: var(--c);
+    text-shadow: 0 0 18px color-mix(in srgb, var(--c) 45%, transparent); }
+  .cc .ml { font-size: clamp(9px, .78vw, 11.5px); color: var(--muted); }
+
+  .foot { position: absolute; bottom: 2.4vh; left: 5vw; right: 5vw; display: flex; justify-content: space-between;
+    align-items: center; font-size: clamp(10px, .85vw, 12px); color: var(--muted); }
+  .foot .warn { color: var(--warn); }
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); cursor: pointer; transition: all .3s; }
+  .dot.on { background: var(--accent); width: 28px; border-radius: 5px; }
+  .nav { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(18,24,38,.7); color: var(--text);
+    border: 1px solid var(--border); width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px; z-index: 10; opacity: .35; transition: opacity .2s; }
+  .nav:hover { opacity: 1; }
+  .nav.prev { left: 1vw; } .nav.next { right: 1vw; }
+  .download-link { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border: 1px solid var(--border); border-radius: 8px;
+    color: var(--muted); font-size: 12.5px; text-decoration: none; background: rgba(18,24,38,.6); transition: color .2s, border-color .2s; }
+  .download-link:hover { color: var(--text); border-color: var(--accent); }
+  .download-link svg { width: 14px; height: 14px; fill: currentColor; }
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- SLIDE 1 -->
+  <section class="slide s1 active">
+    <div class="s1-head">
+      <div class="l">
+        <div class="eyebrow">01 · The Long View: Agentic DevOps</div>
+        <h1>From AI that helps you <span class="grad">type</span> → AI that <span class="grad">runs the lifecycle</span></h1>
+        <p class="thesis">Microsoft's bet: agents work across <b>every stage of the SDLC</b>, coordinated and governed in GitHub, <b>from intent to production</b>.</p>
+      </div>
+      <div class="brand">
+        <div class="logos">
+          <span><svg viewBox="0 0 22 22"><rect x="0" y="0" width="10" height="10" fill="#f25022"/><rect x="12" y="0" width="10" height="10" fill="#7fba00"/><rect x="0" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>Microsoft</span>
+          <div class="sep"></div>
+          <span><svg viewBox="0 0 16 16" fill="#e6edf3"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</span>
+        </div>
+        <div class="tagline">INTENT IN<br>AGENTS EXECUTE<br>OUTCOMES OUT</div>
+      </div>
+    </div>
+
+    <div class="strip s4">
+      <div class="lab">The shift</div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="#3b9eff" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h16M4 12h10M4 17h6M17 13v7"/></svg>
+        <div><h4>Autocomplete<small>2021–23</small></h4><p>Suggests lines</p></div></div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="#a77bff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/></svg>
+        <div><h4>Chat &amp; Agent Mode<small>2024</small></h4><p>Multi-file edits in the IDE</p></div></div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="#2fd6c4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 5v3M9.5 16h5"/><circle cx="12" cy="4" r="1"/><circle cx="9.5" cy="12.5" r=".6" fill="#2fd6c4"/><circle cx="14.5" cy="12.5" r=".6" fill="#2fd6c4"/></svg>
+        <div><h4>Autonomous Agents<small>2025 →</small></h4><p>Issue in, PR out</p></div></div>
+      <div class="it hl"><svg viewBox="0 0 24 24" fill="none" stroke="#ff7ab6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16l-6 8v6l-4 2v-8z"/></svg>
+        <div><h4>The bottleneck moves</h4><p>Specs, review &amp; verification are now the hard part</p></div></div>
+    </div>
+    <div class="flow">
+      <div class="step c1"><div class="n">1</div><div class="k">Plan</div><h3>Specs &amp; Issues</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 8.5l1.2 1.2 2-2M8.5 13.5l1.2 1.2 2-2M13.5 9h2.5M13.5 14h2.5M8.5 18h7.5"/></svg>
+        <ul><li>Intent becomes <b>specs</b></li><li>Work is broken into <b>agent-ready tasks</b></li></ul>
+        <div class="lbl">Spec-Driven Dev</div></div>
+      <div class="step c2"><div class="n">2</div><div class="k">Build</div><h3>Agents Build</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="17" height="14" rx="2"/><path d="M2.5 8h17M5.5 6h.01M7.5 6h.01M9.5 11l-2.5 2.5 2.5 2.5M12.5 11l2.5 2.5-2.5 2.5"/><path d="M20 15.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z" fill="currentColor"/></svg>
+        <ul><li>Agents <b>turn tasks into PRs</b></li><li>Run in <b>isolated, governed</b> sandboxes</li></ul>
+        <div class="lbl">Copilot Coding Agent</div></div>
+      <div class="step c3"><div class="n">3</div><div class="k">Review</div><h3>Autonomous Review</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.2"/><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="18" r="2.2"/><path d="M6 8.2v7.6M18 15.8V10a3 3 0 0 0-3-3h-4M12.5 5l-2 2 2 2"/></svg>
+        <ul><li>Agents <b>review every change</b></li><li><b>Policy-gated</b> auto-merge</li></ul>
+        <div class="lbl">Copilot Code Review</div></div>
+      <div class="step c4"><div class="n">4</div><div class="k">Secure</div><h3>Find &amp; Fix</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/></svg>
+        <ul><li>Agents <b>find and fix</b> vulnerabilities</li><li>Fixes <b>validated &amp; shipped</b> automatically</li></ul>
+        <div class="lbl">GHAS + Autofix</div></div>
+      <div class="step c5"><div class="n">5</div><div class="k">Operate</div><h3>Run &amp; Heal</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M6 11h3l1.5-3 3 6 1.5-3h3M8 21h8M12 17v4"/></svg>
+        <ul><li>Agents <b>diagnose incidents</b> in production</li><li>Signals <b>flow back</b> into code</li></ul>
+        <div class="lbl">Azure SRE Agent</div></div>
+      <div class="step c6"><div class="n">6</div><div class="k">Modernize</div><h3>Pay Down Debt</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v4.5h-4.5"/><path d="M12 16V9.5M9.5 12 12 9.5l2.5 2.5"/></svg>
+        <ul><li><b>Upgrades &amp; migrations</b> at scale</li><li>Legacy backlog <b>burned down</b></li></ul>
+        <div class="lbl">App Modernization</div></div>
+    </div>
+
+    <div class="loop"><div class="t">AGENT HQ · MISSION CONTROL</div></div>
+    <div class="loop-sub"><b>Copilot, Claude, Codex &amp; your own custom agents</b>: one workflow and one governance layer across every stage. Production signals feed back into the next spec.</div>
+
+    <div class="strip">
+      <div class="lab">Built on an<br>open platform</div>
+      <div class="it"><svg viewBox="0 0 16 16" fill="#e6edf3"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        <div><h4>Governance built in</h4><p>Repos, PRs, Actions and branch protection give agents context, approvals and audit.</p></div></div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="#2fd6c4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2.5v4.5M15 2.5v4.5M6.5 7h11v4a5.5 5.5 0 0 1-11 0zM12 16.5v5"/></svg>
+        <div><h4>Open standards</h4><p>MCP, AGENTS.md and custom agents keep your context portable across models.</p></div></div>
+      <div class="it"><svg viewBox="0 0 22 22"><rect x="0" y="0" width="10" height="10" fill="#f25022"/><rect x="12" y="0" width="10" height="10" fill="#7fba00"/><rect x="0" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>
+        <div><h4>Dogfooded in public</h4><p>.NET coding-agent PRs are public. 20–30% of code in some Microsoft repos is AI-written.</p></div></div>
+    </div>
+
+  </section>
+
+  <!-- SLIDE 2 -->
+  <section class="slide s1">
+    <div class="s1-head">
+      <div class="l">
+        <div class="eyebrow">02 · Best Practices</div>
+        <h1>Building toward <span class="grad">fully autonomous</span> delivery</h1>
+        <p class="thesis">Teams that reach full autonomy replace approval steps with <b>context, verification and policy</b>.</p>
+      </div>
+      <div class="brand">
+        <div class="logos">
+          <span><svg viewBox="0 0 22 22"><rect x="0" y="0" width="10" height="10" fill="#f25022"/><rect x="12" y="0" width="10" height="10" fill="#7fba00"/><rect x="0" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>Microsoft</span>
+          <div class="sep"></div>
+          <span><svg viewBox="0 0 16 16" fill="#e6edf3"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</span>
+        </div>
+        <div class="tagline">INTENT IN<br>AGENTS EXECUTE<br>OUTCOMES OUT</div>
+      </div>
+    </div>
+
+    <div class="strip s4">
+      <div class="lab">Autonomy<br>ladder</div>
+      <div class="it"><svg class="" viewBox="0 0 24 24" fill="none" stroke="#3b9eff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h6M17 13v7"/></svg>
+        <div><h4>Assisted</h4><p>AI suggests, people write</p></div></div>
+      <div class="it"><svg class="" viewBox="0 0 24 24" fill="none" stroke="#a77bff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 5v3M9.5 16h5"/><circle cx="12" cy="4" r="1"/></svg>
+        <div><h4>Delegated</h4><p>Agents write, people review</p></div></div>
+      <div class="it"><svg class="" viewBox="0 0 24 24" fill="none" stroke="#2fd6c4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        <div><h4>Policy-gated</h4><p>Agents merge within guardrails</p></div></div>
+      <div class="it hl"><svg class="" viewBox="0 0 24 24" fill="none" stroke="#ff7ab6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 8.5a3.5 3.5 0 1 0 0 7c2.5 0 4.5-3.5 5.5-3.5s3 3.5 5.5 3.5a3.5 3.5 0 1 0 0-7c-2.5 0-4.5 3.5-5.5 3.5S9 8.5 6.5 8.5z"/></svg>
+        <div><h4>Fully autonomous</h4><p>Intent in, outcomes out</p></div></div>
+    </div>
+
+    <div class="pgrid">
+      <div class="glow pc c1"><div class="badge">1</div><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>
+        <div class="body"><h3>Start with checkable work</h3><p>Migrations, upgrades, test coverage, flag cleanup. <b>High-volume work with clear pass/fail</b> comes first.</p><span class="opill">Quick wins</span></div></div>
+      <div class="glow pc c2"><div class="badge">2</div><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l8-4 8 4-8 4z"/><path d="M4 12l8 4 8-4"/><path d="M4 17l8 4 8-4"/></svg>
+        <div class="body"><h3>Engineer the context</h3><p>Instructions, AGENTS.md, custom agents, MCP to internal systems. <b>Context is an owned engineering asset.</b></p><span class="opill">Context engineering</span></div></div>
+      <div class="glow pc c3"><div class="badge">3</div><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v3h3M9 11h6M9 15h6"/></svg>
+        <div class="body"><h3>Specs are the new source code</h3><p>Intent written as <b>machine-checkable acceptance criteria</b>. Poor specs produce poor outcomes.</p><span class="opill">Spec-driven</span></div></div>
+      <div class="glow pc c4"><div class="badge">4</div><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
+        <div class="body"><h3>Verification sets the limit</h3><p>Tests, evals and CI gates decide <b>how much autonomy you can trust</b>. Invest here first.</p><span class="opill">Trust layer</span></div></div>
+      <div class="glow pc c5"><div class="badge">5</div><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2.5"/></svg>
+        <div class="body"><h3>Policy replaces approval</h3><p>Policy as code, required checks and <b>signal-gated auto-merge</b>, with a full audit trail.</p><span class="opill">Governance</span></div></div>
+      <div class="glow pc c6"><div class="badge">6</div><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="9" width="8" height="8" rx="2"/><rect x="13.5" y="9" width="8" height="8" rx="2"/><path d="M10.5 13h3M6.5 6v3M17.5 6v3"/></svg>
+        <div class="body"><h3>Agents check agents</h3><p>Reviewer, security and test agents <b>validate every change</b> before it ships.</p><span class="opill">Multi-agent review</span></div></div>
+      <div class="glow pc c7"><div class="badge">7</div><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg>
+        <div class="body"><h3>Ship progressively, roll back instantly</h3><p>Feature flags, canaries and <b>automatic rollback</b> make autonomous delivery safe.</p><span class="opill">Safe delivery</span></div></div>
+      <div class="glow pc c8"><div class="badge">8</div><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M7 16v-4M12 16V8M17 16v-7"/></svg>
+        <div class="body"><h3>Measure outcomes</h3><p>Lead time, change failure rate, <b>% of changes shipped autonomously</b>, backlog burned down.</p><span class="opill">Metrics</span></div></div>
+      <div class="glow pc c9"><div class="badge">9</div><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5A5 5 0 0 1 21 19"/></svg>
+        <div class="body"><h3>Redesign the operating model</h3><p>Engineers build the <b>harness, specs and evals</b>. Leadership sets an AI-first norm.</p><span class="opill">Operating model</span></div></div>
+    </div>
+  </section>
+
+  <!-- SLIDE 3 -->
+  <section class="slide s1">
+    <div class="s1-head">
+      <div class="l">
+        <div class="eyebrow">03 · Customer Stories</div>
+        <h1>Autonomy starts with <span class="grad">checkable, unglamorous</span> work</h1>
+        <p class="thesis">Software makers with large existing codebases earn autonomy <b>one verifiable workload at a time</b>.</p>
+      </div>
+      <div class="brand">
+        <div class="logos">
+          <span><svg viewBox="0 0 22 22"><rect x="0" y="0" width="10" height="10" fill="#f25022"/><rect x="12" y="0" width="10" height="10" fill="#7fba00"/><rect x="0" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>Microsoft</span>
+          <div class="sep"></div>
+          <span><svg viewBox="0 0 16 16" fill="#e6edf3"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</span>
+        </div>
+        <div class="tagline">INTENT IN<br>AGENTS EXECUTE<br>OUTCOMES OUT</div>
+      </div>
+    </div>
+
+    <div class="cgrid">
+      <div class="glow cc c6"><div class="top"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/></svg><div class="co">Airbnb</div></div>
+        <span class="opill" style="align-self:flex-start">Test migration</span>
+        <p class="d">~3,500 React test files migrated from Enzyme to React Testing Library with LLMs.</p>
+        <div class="bot"><div><div class="m">6 weeks</div><div class="ml">vs. est. 1.5 years</div></div></div></div>
+      <div class="glow cc c2"><div class="top"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l8-4 8 4-8 4z"/><path d="M4 12l8 4 8-4"/><path d="M4 17l8 4 8-4"/></svg><div class="co">Spotify</div></div>
+        <span class="opill" style="align-self:flex-start">Fleet-wide agent</span>
+        <p class="d">Background coding agent runs <b>migrations across the entire fleet</b>.</p>
+        <div class="bot"><div><div class="m">1,000s</div><div class="ml">agent PRs merged</div></div></div></div>
+      <div class="glow cc c4"><div class="top"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v4.5h-4.5"/><path d="M12 16V9.5M9.5 12 12 9.5l2.5 2.5"/></svg><div class="co">Amazon</div></div>
+        <span class="opill" style="align-self:flex-start">Java upgrades</span>
+        <p class="d">~30,000 production apps upgraded to newer Java with an agent <b>(competing tool)</b>.</p>
+        <div class="bot"><div><div class="m">$260M</div><div class="ml">~4,500 dev-years saved</div></div></div></div>
+      <div class="glow cc c1"><div class="top"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg><div class="co">Mercado Libre</div></div>
+        <span class="opill" style="align-self:flex-start">Copilot at scale</span>
+        <p class="d">GitHub Copilot rolled out to <b>~9,000 developers</b>.</p>
+        <div class="bot"><div><div class="m">~50%</div><div class="ml">less time writing code</div></div></div></div>
+      <div class="glow cc c5"><div class="top"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M7 16v-4M12 16V8M17 16v-7"/></svg><div class="co">Duolingo</div></div>
+        <span class="opill" style="align-self:flex-start">AI-first model</span>
+        <p class="d">Copilot paired with a <b>company-wide AI-first</b> operating model.</p>
+        <div class="bot"><div><div class="m">~25%</div><div class="ml">faster in unfamiliar repos</div></div></div></div>
+      <div class="glow cc c3"><div class="top"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10v4h3l7 4V6l-7 4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg><div class="co">Shopify</div></div>
+        <span class="opill" style="align-self:flex-start">Culture</span>
+        <p class="d">CEO memo: AI use is a <b>baseline expectation</b>; prove AI can't do it before adding headcount.</p>
+        <div class="bot"><div><div class="m">Norm-setting</div><div class="ml">cultural reference point</div></div></div></div>
+      <div class="glow cc c8"><div class="top"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M14 2.5V10h7.5A7.5 7.5 0 0 0 14 2.5z"/></svg><div class="co">Google · Coinbase</div></div>
+        <span class="opill" style="align-self:flex-start">Share of new code</span>
+        <p class="d">Leaders publicly report the <b>share of new code</b> that is AI-generated.</p>
+        <div class="bot"><div><div class="m">30–50%</div><div class="ml">&gt;30% Google · ~40–50% Coinbase</div></div></div></div>
+      <div class="glow cc c9"><div class="top"><svg class="ico" viewBox="0 0 22 22"><rect x="0" y="0" width="10" height="10" fill="#f25022"/><rect x="12" y="0" width="10" height="10" fill="#7fba00"/><rect x="0" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg><div class="co">Microsoft</div></div>
+        <span class="opill" style="align-self:flex-start">Dogfooding</span>
+        <p class="d">.NET coding-agent PRs are <b>public</b>: a real-world view, not a curated demo.</p>
+        <div class="bot"><div><div class="m">20–30%</div><div class="ml">AI-written in some repos</div></div></div></div>
+    </div>
+    <div class="strip s4">
+      <div class="lab">The<br>pattern</div>
+      <div class="it"><svg class="" viewBox="0 0 24 24" fill="none" stroke="#3b9eff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
+        <div><h4>Checkable work first</h4><p>Migrations, upgrades, tests</p></div></div>
+      <div class="it"><svg class="" viewBox="0 0 24 24" fill="none" stroke="#3fd47a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l8-4 8 4-8 4z"/><path d="M4 12l8 4 8-4"/><path d="M4 17l8 4 8-4"/></svg>
+        <div><h4>Fleet-scale agents</h4><p>Thousands of changes, not one</p></div></div>
+      <div class="it"><svg class="" viewBox="0 0 24 24" fill="none" stroke="#f5b84a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/></svg>
+        <div><h4>Verification earns autonomy</h4><p>Trust grows with the gates</p></div></div>
+      <div class="it hl"><svg class="" viewBox="0 0 24 24" fill="none" stroke="#ff7ab6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>
+        <div><h4>Code was never the product</h4><p>Intent & verified outcomes are</p></div></div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <a class="download-link" href="https://github.com/Lantern-Cloud-Services/IP-Index/blob/main/presentations/Pres-GHCP_AI_SDLC/ai-sdlc-deck.html" target="_blank" rel="noopener noreferrer">
+      <svg viewBox="0 0 16 16"><path d="M7.47 10.78a.75.75 0 0 0 1.06 0l3.25-3.25a.75.75 0 0 0-1.06-1.06L8.75 8.44V1.75a.75.75 0 0 0-1.5 0v6.69L5.28 6.47a.75.75 0 0 0-1.06 1.06l3.25 3.25zM3.5 12.25a.75.75 0 0 0-1.5 0v1c0 .966.784 1.75 1.75 1.75h8.5A1.75 1.75 0 0 0 14 13.25v-1a.75.75 0 0 0-1.5 0v1a.25.25 0 0 1-.25.25h-8.5a.25.25 0 0 1-.25-.25v-1z"/></svg>
+      <span>Download</span>
+    </a>    <div class="dots"></div>
+    <span id="counter">1 / 3</span>
+  </div>
+</div>
+<button class="nav prev" aria-label="Previous">‹</button>
+<button class="nav next" aria-label="Next">›</button>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  const dots = document.querySelector('.dots');
+  const counter = document.getElementById('counter');
+  let i = 0;
+  slides.forEach((_, n) => { const d = document.createElement('div'); d.className = 'dot'; d.onclick = () => go(n); dots.appendChild(d); });
+  function go(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    [...dots.children].forEach((d, k) => d.classList.toggle('on', k === i));
+    counter.textContent = `${i + 1} / ${slides.length}`;
+  }
+  document.addEventListener('keydown', e => {
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) go(i + 1);
+    if (['ArrowLeft', 'PageUp'].includes(e.key)) go(i - 1);
+    if (e.key === 'Home') go(0);
+    if (e.key === 'End') go(slides.length - 1);
+  });
+  document.querySelector('.prev').onclick = () => go(i - 1);
+  document.querySelector('.next').onclick = () => go(i + 1);
+  go(0);
+</script>
+</body>
+</html>
