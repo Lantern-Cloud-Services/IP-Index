@@ -8,7 +8,7 @@ This folder hosts the presentation as a static, self-contained HTML slide deck t
 
 1. **The Long View: Agentic DevOps**: from autocomplete to chat and agent mode to autonomous agents. Agents work across every stage of the SDLC, coordinated and governed in GitHub from intent to production, and the bottleneck moves to specs, review and verification.
 2. **Best Practices**: building toward fully autonomous delivery by replacing approval steps with context, verification and policy.
-3. **Customer Stories**: software makers with large existing codebases earn autonomy one verifiable workload at a time, starting with checkable, unglamorous work.
+3. **Customer Stories**: software makers with large existing codebases earn autonomy one verifiable workload at a time, starting with well-defined, verifiable work.
 
 Navigate with the arrow keys, the on-screen ‹ › buttons, or the dots in the footer.
 
