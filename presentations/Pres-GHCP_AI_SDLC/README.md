@@ -1,6 +1,6 @@
 # The Autonomous SDLC
 
-A three-slide deck on how GitHub Copilot is moving from AI that helps you type to AI that runs the software lifecycle, and on what teams need in place to move toward autonomous delivery.
+A three-slide deck on how GitHub Copilot is moving from AI-assisted development to AI that runs the SDLC, and on what teams need in place to move toward autonomous delivery.
 
 This folder hosts the presentation as a static, self-contained HTML slide deck that can be viewed directly in a browser.
 
