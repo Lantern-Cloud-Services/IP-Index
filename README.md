@@ -18,6 +18,7 @@ shows one tile per presentation.
 | Copilot Champions Deep Dive Session 1 | [`Pres-GHCP_champions_brownfield_primitives_iterations`](presentations/Pres-GHCP_champions_brownfield_primitives_iterations/) | Brownfield modernization, agent configuration, agentic primitives, iteration patterns |
 | Copilot Champions Deep Dive Session 3 | [`Pres-GHCP_workflows_orchestration`](presentations/Pres-GHCP_workflows_orchestration/) | Agentic primitives review, workflows and orchestration across the SDLC |
 | The Autonomous SDLC | [`Pres-GHCP_AI_SDLC`](presentations/Pres-GHCP_AI_SDLC/) | Agentic DevOps, best practices for autonomous delivery, customer stories |
+| How Microsoft Engineers with AI | [`Pres-GHCP_MS_engineering_practices`](presentations/Pres-GHCP_MS_engineering_practices/) | Spec-driven development with product and engineering, AI in testing and operations, productivity beyond DORA, planning across teams |
 | Agentic Quality Engineering (infographic) | [`Pres-GHCP_agentic_quality_engineering`](presentations/Pres-GHCP_agentic_quality_engineering/) | Agentic testing model: change detection, test generation and execution, continuous coverage improvement |
 | GitHub Copilot Best Practices & Strategy | [`Pres-GHCP_BestPractices_Governance_Optimization_CICD`](presentations/Pres-GHCP_BestPractices_Governance_Optimization_CICD/) | Brownfield safety, governance, context engineering, testing, GitHub Actions CI/CD |
 

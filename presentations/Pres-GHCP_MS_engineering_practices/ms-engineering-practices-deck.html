@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How Microsoft Engineers with AI</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --panel: #121826;
+    --panel-2: #172033;
+    --border: #243049;
+    --text: #e6edf3;
+    --muted: #8b98ad;
+    --accent: #7c5cff;
+    --accent-2: #2fd6c4;
+    --accent-3: #ff7ab6;
+    --warn: #f5b84a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Inter, Roboto, sans-serif; overflow: hidden; }
+
+  .deck { position: relative; width: 100vw; height: 100vh; }
+  .slide {
+    position: absolute; inset: 0; padding: 4.5vh 5vw 8vh;
+    display: flex; flex-direction: column; gap: 2.4vh;
+    opacity: 0; transform: translateX(40px); pointer-events: none;
+    transition: opacity .5s ease, transform .5s ease;
+    background:
+      radial-gradient(1200px 600px at 100% -10%, rgba(124,92,255,.18), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(47,214,196,.12), transparent 60%),
+      var(--bg);
+  }
+  .slide.active { opacity: 1; transform: none; pointer-events: auto; }
+
+  .eyebrow { font-size: clamp(11px, 1.1vw, 14px); letter-spacing: .18em; text-transform: uppercase;
+    color: var(--accent-2); font-weight: 600; }
+  h1 { font-size: clamp(26px, 3.2vw, 46px); line-height: 1.1; font-weight: 700; letter-spacing: -.01em; }
+  h1 .grad { background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .thesis { font-size: clamp(14px, 1.45vw, 20px); color: var(--muted); max-width: 70ch; }
+  .thesis b { color: var(--text); }
+
+  .card { background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.6vh 1.2vw; }
+  .card h3 { font-size: clamp(13px, 1.2vw, 17px); margin-bottom: .6vh; display: flex; align-items: center; gap: .5em; }
+  .card p, .card li { font-size: clamp(11px, 1.02vw, 14.5px); color: var(--muted); line-height: 1.45; }
+  .card p b, .card li b { color: var(--text); font-weight: 600; }
+
+  /* Slide 1 */
+  .s1 { gap: 2.1vh; padding-top: 4vh; }
+  .s1 .flow { margin-top: 1.6vh; }
+  .s1 h1 { font-size: clamp(24px, 2.9vw, 42px); }
+  .s1 h1 .grad { white-space: nowrap; }
+  .s1-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 2vw; }
+  .s1-head .l { display: flex; flex-direction: column; gap: .9vh; }
+  .brand { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1vh; }
+  .brand .logos { display: flex; align-items: center; gap: 1vw; font-weight: 600; font-size: clamp(14px, 1.35vw, 20px); }
+  .brand .logos span { display: flex; align-items: center; gap: .45em; }
+  .brand .logos svg { width: 1.2em; height: 1.2em; }
+  .brand .sep { width: 1px; height: 1.6em; background: var(--border); }
+  .brand .tagline { font-size: clamp(8px, .68vw, 10px); letter-spacing: .25em; color: var(--muted); text-align: right; line-height: 1.8; }
+
+  .flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1.5vw; margin-top: 1.4vh; }
+  .step { --c: var(--accent); position: relative; border: 1px solid var(--c); border-radius: 14px;
+    padding: 2.4vh .8vw 1.2vh; display: flex; flex-direction: column; align-items: center; text-align: center; gap: .8vh;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--c) 14%, transparent), rgba(18,24,38,.55) 60%);
+    box-shadow: 0 0 26px -10px var(--c); }
+  .step .n { position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%);
+    width: clamp(22px, 1.9vw, 30px); height: clamp(22px, 1.9vw, 30px); border-radius: 50%;
+    background: var(--c); color: #0b0f17; font-weight: 800; display: grid; place-items: center;
+    font-size: clamp(11px, .95vw, 14px); box-shadow: 0 0 14px var(--c); }
+  .step .k { font-size: clamp(9px, .75vw, 11px); letter-spacing: .2em; text-transform: uppercase; color: var(--c); font-weight: 700; }
+  .step h3 { font-size: clamp(13px, 1.15vw, 17px); line-height: 1.2; margin-top: -.4vh; }
+  .step .ic { width: clamp(30px, 2.9vw, 46px); height: clamp(30px, 2.9vw, 46px); color: var(--c);
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--c) 55%, transparent)); }
+  .step ul { list-style: none; text-align: left; display: flex; flex-direction: column; gap: .6vh; width: 100%; }
+  .step li { font-size: clamp(10px, .88vw, 13px); color: var(--muted); line-height: 1.35; padding-left: 1em; position: relative; }
+  .step li b { color: var(--text); font-weight: 600; }
+  .step li::before { content: "•"; color: var(--c); position: absolute; left: 0; }
+  .step .lbl { margin-top: auto; width: 100%; font-size: clamp(8px, .66vw, 10.5px); font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 50%, transparent);
+    border-radius: 99px; padding: .5em .6em; }
+  .step:not(:last-child)::after { content: "›"; position: absolute; right: -.75vw; top: 50%; transform: translate(50%, -50%);
+    color: var(--c); font-size: clamp(18px, 1.9vw, 30px); font-weight: 700; }
+  .c1 { --c: #3b9eff; } .c2 { --c: #3fd47a; } .c3 { --c: #a77bff; }
+  .c4 { --c: #f5b84a; } .c5 { --c: #2fd6c4; } .c6 { --c: #ff7ab6; }
+
+  .loop { position: relative; height: 2.4vh; margin: 0 4.5%; border: 2px solid rgba(59,158,255,.55); border-top: none; border-radius: 0 0 16px 16px; }
+  .loop::before { content: ""; position: absolute; left: -6px; top: -10px; border: 6px solid transparent; border-top: 0; border-bottom: 10px solid #3b9eff; }
+  .loop .t { position: absolute; left: 50%; bottom: 0; transform: translate(-50%, 50%); background: var(--bg); padding: 0 1.4vw;
+    font-size: clamp(10px, .9vw, 13px); letter-spacing: .3em; color: #3b9eff; font-weight: 700; white-space: nowrap; }
+  .loop-sub { text-align: center; font-size: clamp(10px, .88vw, 13px); color: var(--muted); margin-top: -.2vh; }
+  .loop-sub b { color: var(--text); font-weight: 600; }
+
+  .strip { display: grid; grid-template-columns: 12vw repeat(3, 1fr); align-items: center; gap: 1.4vw;
+    padding: 1.5vh 1.6vw; border: 1px solid var(--border); border-radius: 14px; background: rgba(18,24,38,.65); }
+  .strip.s4 { grid-template-columns: 12vw repeat(4, 1fr); }
+  .strip .lab { font-size: clamp(9px, .8vw, 12px); letter-spacing: .28em; color: #3b9eff; font-weight: 700; text-transform: uppercase; line-height: 1.8; }
+  .strip .it { display: flex; gap: .9vw; align-items: center; }
+  .strip .it + .it { border-left: 1px solid var(--border); padding-left: 1.4vw; }
+  .strip .it svg { flex: none; width: clamp(26px, 2.5vw, 38px); height: clamp(26px, 2.5vw, 38px); }
+  .strip h4 { font-size: clamp(12px, 1.05vw, 15.5px); font-weight: 600; }
+  .strip h4 small { color: var(--muted); font-weight: 400; font-size: .8em; margin-left: .3em; }
+  .strip p { font-size: clamp(10px, .85vw, 12.5px); color: var(--muted); line-height: 1.35; }
+  .strip .it.hl h4 { color: #ff7ab6; }
+  .take { margin-top: auto; padding: 1.4vh 1.4vw; border-left: 4px solid var(--accent-3);
+    background: rgba(255,122,182,.07); border-radius: 0 10px 10px 0; font-size: clamp(13px, 1.3vw, 18px); }
+  .take b { color: var(--accent-3); }
+
+  .c7 { --c: #9ad94f; } .c8 { --c: #ff8a5b; } .c9 { --c: #5b8cff; }
+  .badge { position: absolute; top: 0; width: clamp(22px, 1.9vw, 30px); height: clamp(22px, 1.9vw, 30px); border-radius: 50%;
+    background: var(--c); color: #0b0f17; font-weight: 800; display: grid; place-items: center;
+    font-size: clamp(11px, .95vw, 14px); box-shadow: 0 0 14px var(--c); transform: translateY(-50%); left: 1.1vw; }
+  .glow { position: relative; border: 1px solid var(--c); border-radius: 14px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--c) 14%, transparent), rgba(18,24,38,.55) 65%);
+    box-shadow: 0 0 26px -10px var(--c); }
+  .ico { flex: none; color: var(--c); filter: drop-shadow(0 0 8px color-mix(in srgb, var(--c) 55%, transparent)); }
+  .opill { display: inline-block; font-size: clamp(8px, .66vw, 10.5px); font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 50%, transparent);
+    border-radius: 99px; padding: .45em .9em; }
+
+  /* Slide 2 */
+  .pgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.4vh 1.5vw; margin-top: 1.4vh; flex: 1; min-height: 0; max-height: 52vh; }
+  .pc { display: flex; gap: 1vw; align-items: center; padding: 2vh 1.1vw 1.4vh; }
+  .pc .ico { width: clamp(30px, 2.8vw, 44px); height: clamp(30px, 2.8vw, 44px); }
+  .pc .body { display: flex; flex-direction: column; gap: .5vh; align-items: flex-start; }
+  .pc h3 { font-size: clamp(13px, 1.12vw, 16.5px); line-height: 1.2; }
+  .pc p { font-size: clamp(10px, .86vw, 13px); color: var(--muted); line-height: 1.35; }
+  .pc p b { color: var(--text); font-weight: 600; }
+
+  .pc.glow { border-color: var(--border); background: linear-gradient(180deg, var(--panel-2), var(--panel)); box-shadow: none; }
+  .pc .badge { box-shadow: none; }
+  .pc .ico { filter: none; opacity: .9; }
+  .pc .opill { color: var(--muted); border-color: var(--border); }
+
+  /* Slide 3 */
+  .cgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.4vh 1.5vw; margin-top: 1.4vh; flex: 1; min-height: 0; max-height: 54vh; }
+  .cc { display: flex; flex-direction: column; gap: .7vh; padding: 1.8vh 1.1vw 1.5vh; }
+  .cc .top { display: flex; align-items: center; gap: .7vw; }
+  .cc .ico { width: clamp(24px, 2.2vw, 34px); height: clamp(24px, 2.2vw, 34px); }
+  .cc .co { font-size: clamp(14px, 1.3vw, 19px); font-weight: 700; }
+  .cc .d { font-size: clamp(10px, .84vw, 12.5px); color: var(--muted); line-height: 1.35; }
+  .cc .d b { color: var(--text); font-weight: 600; }
+  .cc .bot { margin-top: auto; display: flex; align-items: flex-end; justify-content: space-between; gap: .6vw; }
+  .cc .m { font-size: clamp(18px, 1.9vw, 30px); font-weight: 800; line-height: 1.05; color: var(--c);
+    text-shadow: 0 0 18px color-mix(in srgb, var(--c) 45%, transparent); }
+  .cc .ml { font-size: clamp(9px, .78vw, 11.5px); color: var(--muted); }
+
+  .foot { position: absolute; bottom: 2.4vh; left: 5vw; right: 5vw; display: flex; justify-content: space-between;
+    align-items: center; font-size: clamp(10px, .85vw, 12px); color: var(--muted); }
+  .foot .warn { color: var(--warn); }
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); cursor: pointer; transition: all .3s; }
+  .dot.on { background: var(--accent); width: 28px; border-radius: 5px; }
+  .nav { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(18,24,38,.7); color: var(--text);
+    border: 1px solid var(--border); width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px; z-index: 10; opacity: .35; transition: opacity .2s; }
+  .nav:hover { opacity: 1; }
+  .nav.prev { left: 1vw; } .nav.next { right: 1vw; }
+  .download-link { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border: 1px solid var(--border); border-radius: 8px;
+    color: var(--muted); font-size: 12.5px; text-decoration: none; background: rgba(18,24,38,.6); transition: color .2s, border-color .2s; }
+  .download-link:hover { color: var(--text); border-color: var(--accent); }
+  .download-link svg { width: 14px; height: 14px; fill: currentColor; }
+
+  /* Agenda slide */
+  .alist { list-style: none; display: flex; flex-direction: column; gap: 1.8vh; margin-top: 3vh; max-width: 1100px; }
+  .alist li { display: flex; align-items: center; gap: 1.3vw; padding: 1.5vh 1.4vw;
+    border-left: 3px solid var(--c); border-radius: 0 10px 10px 0;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--c) 10%, transparent), rgba(18,24,38,.35) 70%); }
+  .alist .num { flex: none; width: clamp(26px, 2.2vw, 36px); height: clamp(26px, 2.2vw, 36px); border-radius: 50%;
+    background: var(--c); color: #0b0f17; font-weight: 800; display: grid; place-items: center; font-size: clamp(12px, 1.05vw, 16px); }
+  .alist svg { flex: none; width: clamp(24px, 2.1vw, 34px); height: clamp(24px, 2.1vw, 34px); color: var(--c); }
+  .alist .body { display: flex; flex-direction: column; gap: .4vh; }
+  .alist h3 { font-size: clamp(15px, 1.4vw, 21px); line-height: 1.2; }
+  .alist h3 .k { font-size: .58em; letter-spacing: .2em; text-transform: uppercase; color: var(--c); font-weight: 700; margin-right: .9em; vertical-align: .15em; }
+  .alist p { font-size: clamp(11px, .95vw, 14px); color: var(--muted); line-height: 1.4; }
+  .alist p b { color: var(--text); font-weight: 600; }
+
+  /* Spec-driven development slide */
+  .sdd { gap: 1.3vh; }
+  .sdd .flow { margin-top: 1.4vh; }
+  .flow.f4 { grid-template-columns: repeat(4, 1fr); gap: 2vw; }
+  .flow.f4 .step:not(:last-child)::after { right: -1vw; }
+  .hgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5vw; }
+  .hc { padding: 1.3vh 1.2vw; }
+  .hc.glow { border-color: var(--border); background: linear-gradient(180deg, var(--panel-2), var(--panel)); box-shadow: none; }
+  .hc h3 { font-size: clamp(12px, 1.08vw, 16px); display: flex; align-items: center; gap: .55em; margin-bottom: .8vh; }
+  .hc h3 svg { flex: none; width: 1.35em; height: 1.35em; color: var(--c); }
+  .hc ul { list-style: none; display: flex; flex-direction: column; gap: .4vh; }
+  .hc li { font-size: clamp(10px, .86vw, 13px); color: var(--muted); line-height: 1.35; padding-left: 1em; position: relative; }
+  .hc li::before { content: "•"; color: var(--c); position: absolute; left: 0; }
+  .hc li b { color: var(--text); font-weight: 600; }
+  .hc code { font-family: Consolas, "Cascadia Code", monospace; font-size: .92em; color: var(--text); }
+
+  /* AI testing & operations slide */
+  .aiops { gap: 1.5vh; }
+  .flow.f3 { grid-template-columns: repeat(3, 1fr); gap: 2.6vw; margin-top: 1.8vh; }
+  .flow.f3 .step:not(:last-child)::after { right: -1.3vw; }
+  .flow.f3 .step { padding: 2.6vh 1.4vw 1.4vh; }
+  .flow.f3 .step ul { gap: .8vh; }
+  .flow.f3 .step .stat { margin-top: auto; font-size: clamp(9px, .8vw, 12px); color: var(--muted); }
+  .flow.f3 .step .stat b { font-size: 1.5em; font-weight: 800; color: var(--c); margin-right: .35em;
+    text-shadow: 0 0 14px color-mix(in srgb, var(--c) 45%, transparent); }
+  .recs { display: grid; grid-template-columns: 10vw repeat(5, 1fr); gap: 1.2vw; align-items: start;
+    padding: 1.6vh 1.4vw; border: 1px solid var(--border); border-radius: 14px; background: rgba(18,24,38,.65); }
+  .recs .lab { font-size: clamp(9px, .8vw, 12px); letter-spacing: .28em; color: #3b9eff; font-weight: 700; text-transform: uppercase; line-height: 1.8; align-self: center; }
+  .recs .r { display: flex; gap: .7vw; align-items: flex-start; }
+  .recs .r + .r { border-left: 1px solid var(--border); padding-left: 1.2vw; }
+  .recs .num { flex: none; width: clamp(20px, 1.6vw, 26px); height: clamp(20px, 1.6vw, 26px); border-radius: 50%;
+    background: var(--c); color: #0b0f17; font-weight: 800; display: grid; place-items: center; font-size: clamp(10px, .82vw, 12.5px); }
+  .recs h4 { font-size: clamp(11px, .98vw, 14.5px); font-weight: 600; margin-bottom: .4vh; }
+  .recs p { font-size: clamp(9.5px, .8vw, 12px); color: var(--muted); line-height: 1.35; }
+  .recs p b { color: var(--text); font-weight: 600; }
+
+  /* Measurement slides */
+  .meas { gap: 1.5vh; }
+  .strip.fw { grid-template-columns: 9vw repeat(4, 1fr); }
+  .tags { display: flex; flex-wrap: wrap; gap: .5vh .4vw; }
+  .tags span { font-size: clamp(9px, .78vw, 12px); color: var(--text); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+    background: color-mix(in srgb, var(--c) 10%, transparent); border-radius: 99px; padding: .3em .85em; }
+  .m2 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 1.5vw; }
+  .pr2c { padding: 1.7vh 1.6vw 1.6vh; display: flex; flex-direction: column; gap: 1vh; }
+  .pr2c .hd { display: flex; align-items: baseline; gap: .9vw; }
+  .pr2c .hd .k { font-size: clamp(9px, .75vw, 11px); letter-spacing: .2em; text-transform: uppercase; color: var(--c); font-weight: 700; }
+  .pr2c .hd h3 { font-size: clamp(14px, 1.3vw, 19px); }
+  .pr2c > p { font-size: clamp(10px, .86vw, 13px); color: var(--muted); line-height: 1.4; }
+  .pr2c > p b { color: var(--text); font-weight: 600; }
+  .tl { position: relative; display: grid; grid-template-columns: 1fr 1fr; margin: 3.4vh 1vw 0; }
+  .tl .ms { position: absolute; top: 0; transform: translate(-50%, calc(-100% - .9vh)); font-size: clamp(9px, .76vw, 11.5px);
+    color: var(--text); font-weight: 600; white-space: nowrap; }
+  .tl .ms::after { content: ""; position: absolute; left: 50%; top: calc(100% + .45vh); width: 9px; height: 9px; border-radius: 50%;
+    background: var(--text); transform: translateX(-50%); box-shadow: 0 0 8px rgba(230,237,243,.6); }
+  .tl .ms.s { transform: translate(0, calc(-100% - .9vh)); } .tl .ms.s::after { left: 0; transform: none; }
+  .tl .ms.e { transform: translate(-100%, calc(-100% - .9vh)); } .tl .ms.e::after { left: auto; right: 0; transform: none; }
+  .tl .seg { text-align: center; }
+  .tl .seg .bar { height: 8px; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 55%, transparent), var(--c)); box-shadow: 0 0 12px -2px var(--c); }
+  .tl .seg:first-of-type .bar { border-radius: 99px 0 0 99px; } .tl .seg:last-of-type .bar { border-radius: 0 99px 99px 0; }
+  .tl .seg .n { margin-top: .7vh; font-size: clamp(10px, .86vw, 13px); font-weight: 700; color: var(--c); }
+  .span { height: 1.4vh; margin: .6vh 1vw 0; border: 2px solid rgba(124,92,255,.7); border-top: none; border-radius: 0 0 12px 12px; position: relative; }
+  .span .t { position: absolute; left: 50%; bottom: 0; transform: translate(-50%, 50%); background: #121a2b; padding: 0 1vw;
+    font-size: clamp(10px, .9vw, 13.5px); font-weight: 800; letter-spacing: .12em; color: #b9a3ff; white-space: nowrap; }
+  .m2 .hc ul { gap: 1.2vh; margin-top: .6vh; }
+  .hc .stat { margin-top: .9vh; font-size: clamp(9.5px, .8vw, 12px); color: var(--muted); }
+  .hc .stat b { font-size: 1.45em; font-weight: 800; color: var(--c); margin-right: .3em; }
+
+  .ghf { display: grid; grid-template-columns: 2.1fr 1fr; gap: 1.6vw; margin-top: 1.4vh; flex: 1; min-height: 0; max-height: 50vh; }
+  .ghf .rows { display: grid; grid-template-rows: repeat(3, 1fr); gap: 2vh; }
+  .ghr { display: grid; grid-template-columns: auto 1fr 1.25fr; gap: 1.2vw; align-items: center; padding: 1.9vh 1.4vw; }
+  .ghr .ico, .gbo .ico { width: clamp(28px, 2.6vw, 40px); height: clamp(28px, 2.6vw, 40px); }
+  .ghr h3, .gbo h3 { font-size: clamp(15px, 1.5vw, 22px); margin-bottom: .7vh; }
+  .ghr .tags span, .gbo .tags span { font-size: clamp(10px, .9vw, 13.5px); }
+  .ghr p, .gbo p { font-size: clamp(11px, 1vw, 15px); color: var(--muted); line-height: 1.4; }
+  .gbo { padding: 2.2vh 1.5vw; display: flex; flex-direction: column; gap: 1.3vh; }
+  .gbo .top { display: flex; align-items: center; justify-content: space-between; }
+  .gbo ul { list-style: none; display: flex; flex-direction: column; gap: 1.6vh; margin-top: 1vh; }
+  .gbo li { font-size: clamp(12px, 1.08vw, 16px); color: var(--text); line-height: 1.35; padding-left: 1.1em; position: relative; }
+  .gbo li::before { content: "›"; color: var(--c); position: absolute; left: 0; font-weight: 800; }
+  .gbo .opill { margin-top: auto; align-self: flex-start; }
+
+  .mlist { list-style: none; display: flex; flex-direction: column; gap: 2vh; margin-top: 2vh; }
+  .mlist li { display: grid; grid-template-columns: auto 14vw 1fr; align-items: center; gap: 1.6vw; padding: 2.5vh 1.6vw;
+    border-left: 3px solid var(--c); border-radius: 0 10px 10px 0;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--c) 10%, transparent), rgba(18,24,38,.35) 70%); }
+  .mlist .let { width: clamp(28px, 2.4vw, 38px); height: clamp(28px, 2.4vw, 38px); border-radius: 50%; background: var(--c); color: #0b0f17;
+    font-weight: 800; display: grid; place-items: center; font-size: clamp(13px, 1.15vw, 17px); box-shadow: 0 0 14px -2px var(--c); }
+  .mlist .pill { justify-self: start; font-size: clamp(10.5px, .95vw, 14.5px); font-weight: 700; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 50%, transparent);
+    border-radius: 99px; padding: .45em 1em; white-space: nowrap; }
+  .mlist .d { font-size: clamp(12px, 1.15vw, 17.5px); color: var(--muted); line-height: 1.4; }
+  .mlist .d em { color: var(--text); }
+
+  .wgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.3vw; margin-top: 3vh; flex: 1; min-height: 0; max-height: 48vh; }
+  .wc { padding: 3.4vh 1.2vw 2.6vh; display: flex; flex-direction: column; gap: 2.2vh; }
+  .wc .badge { box-shadow: 0 0 14px var(--c); }
+  .wc .nm { font-size: clamp(9.5px, .82vw, 12.5px); letter-spacing: .14em; text-transform: uppercase; color: var(--c); font-weight: 700; }
+  .wc .m { margin-top: auto; font-size: clamp(32px, 4vw, 66px); font-weight: 800; line-height: 1; color: var(--c);
+    text-shadow: 0 0 22px color-mix(in srgb, var(--c) 45%, transparent); }
+  .wc .m small { font-size: .45em; font-weight: 700; margin-left: .15em; }
+  .wc p { margin-bottom: auto; font-size: clamp(11px, 1.05vw, 16px); color: var(--muted); line-height: 1.45; }
+  .wc p b { color: var(--text); font-weight: 600; }
+
+  /* Planning slide */
+  .plan { gap: 2vh; }
+  .plan .hc { padding: 1.8vh 1.3vw; } .plan .hc ul { gap: .7vh; }
+  .flow.cad { grid-template-columns: repeat(4, 1fr); gap: 2vw; margin-top: 1.8vh; }
+  .flow.cad .step:not(:last-child)::after { right: -1vw; }
+  .flow.cad .step { padding: 2.3vh 1vw 1.2vh; gap: .6vh; }
+  .flow.cad .dur { font-size: clamp(20px, 2vw, 32px); font-weight: 800; color: var(--c); line-height: 1.05;
+    text-shadow: 0 0 18px color-mix(in srgb, var(--c) 45%, transparent); }
+  .flow.cad .step p { font-size: clamp(10px, .86vw, 13px); color: var(--muted); line-height: 1.35; }
+  .flow.cad .step p b { color: var(--text); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- SLIDE 1 · Agenda -->
+  <section class="slide s1 active">
+    <div class="s1-head">
+      <div class="l">
+        <div class="eyebrow">Agenda · Overview</div>
+        <h1>How Microsoft <span class="grad">engineers with AI</span></h1>
+        <p class="thesis">What we learned about how Microsoft teams plan, build, test, operate and measure software <b>when agents do more of the work</b>.</p>
+      </div>
+      <div class="brand">
+        <div class="logos">
+          <span><svg viewBox="0 0 22 22"><rect x="0" y="0" width="10" height="10" fill="#f25022"/><rect x="12" y="0" width="10" height="10" fill="#7fba00"/><rect x="0" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>Microsoft</span>
+          <div class="sep"></div>
+          <span><svg viewBox="0 0 16 16" fill="#e6edf3"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</span>
+        </div>
+        <div class="tagline">INTENT IN<br>AGENTS EXECUTE<br>OUTCOMES OUT</div>
+      </div>
+    </div>
+
+    <ol class="alist">
+      <li class="c1"><div class="num">1</div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 8.5l1.2 1.2 2-2M8.5 13.5l1.2 1.2 2-2M13.5 9h2.5M13.5 14h2.5M8.5 18h7.5"/></svg>
+        <div class="body"><h3><span class="k">Plan &amp; build</span>Spec-driven development, product and engineering together</h3><p>How a <b>shared, reviewed spec</b> replaces the PM-to-engineering handoff.</p></div></li>
+      <li class="c5"><div class="num">2</div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M6 11h3l1.5-3 3 6 1.5-3h3M8 21h8M12 17v4"/></svg>
+        <div class="body"><h3><span class="k">Test &amp; operate</span>AI in testing and operations</h3><p>Where agents <b>verify changes and run production</b>, and where humans stay in the loop.</p></div></li>
+      <li class="c4"><div class="num">3</div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M7 16v-4M12 16V8M17 16v-7"/></svg>
+        <div class="body"><h3><span class="k">Measure</span>Measuring productivity beyond DORA</h3><p>Which signals show <b>real impact</b> once AI changes how work gets done.</p></div></li>
+      <li class="c3"><div class="num">4</div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5A5 5 0 0 1 21 19"/></svg>
+        <div class="body"><h3><span class="k">Plan at scale</span>How Microsoft plans and prioritizes across many teams</h3><p>How priorities <b>stay aligned</b> across a large, multi-team organization.</p></div></li>
+    </ol>
+
+    <div class="take">First, the context: <b>agents are moving into every stage of the SDLC</b>. Then one deep dive per question.</div>
+  </section>
+
+  <!-- SLIDE 2 · Context -->
+  <section class="slide s1">
+    <div class="s1-head">
+      <div class="l">
+        <div class="eyebrow">Context · The Long View: Agentic DevOps</div>
+        <h1>From AI-assisted <span class="grad">development</span> → AI that <span class="grad">runs the SDLC</span></h1>
+        <p class="thesis">Microsoft's bet: agents work across <b>every stage of the SDLC</b>, coordinated and governed in GitHub, <b>from intent to production</b>.</p>
+      </div>
+      <div class="brand">
+        <div class="logos">
+          <span><svg viewBox="0 0 22 22"><rect x="0" y="0" width="10" height="10" fill="#f25022"/><rect x="12" y="0" width="10" height="10" fill="#7fba00"/><rect x="0" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>Microsoft</span>
+          <div class="sep"></div>
+          <span><svg viewBox="0 0 16 16" fill="#e6edf3"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</span>
+        </div>
+        <div class="tagline">INTENT IN<br>AGENTS EXECUTE<br>OUTCOMES OUT</div>
+      </div>
+    </div>
+
+    <div class="strip s4">
+      <div class="lab">The shift</div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="#3b9eff" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h16M4 12h10M4 17h6M17 13v7"/></svg>
+        <div><h4>Autocomplete<small>2021–23</small></h4><p>Suggests lines</p></div></div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="#a77bff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/></svg>
+        <div><h4>Chat &amp; Agent Mode<small>2024</small></h4><p>Multi-file edits in the IDE</p></div></div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="#2fd6c4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 5v3M9.5 16h5"/><circle cx="12" cy="4" r="1"/><circle cx="9.5" cy="12.5" r=".6" fill="#2fd6c4"/><circle cx="14.5" cy="12.5" r=".6" fill="#2fd6c4"/></svg>
+        <div><h4>Autonomous Agents<small>2025 →</small></h4><p>Issue in, PR out</p></div></div>
+      <div class="it hl"><svg viewBox="0 0 24 24" fill="none" stroke="#ff7ab6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16l-6 8v6l-4 2v-8z"/></svg>
+        <div><h4>The bottleneck moves</h4><p>Specs, review &amp; verification are now the hard part</p></div></div>
+    </div>
+    <div class="flow">
+      <div class="step c1"><div class="n">1</div><div class="k">Plan</div><h3>Specs &amp; Issues</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 8.5l1.2 1.2 2-2M8.5 13.5l1.2 1.2 2-2M13.5 9h2.5M13.5 14h2.5M8.5 18h7.5"/></svg>
+        <ul><li>Intent becomes <b>specs</b></li><li>Work is broken into <b>agent-ready tasks</b></li></ul>
+        <div class="lbl">Spec-Driven Dev</div></div>
+      <div class="step c2"><div class="n">2</div><div class="k">Build</div><h3>Agents Build</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="17" height="14" rx="2"/><path d="M2.5 8h17M5.5 6h.01M7.5 6h.01M9.5 11l-2.5 2.5 2.5 2.5M12.5 11l2.5 2.5-2.5 2.5"/><path d="M20 15.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z" fill="currentColor"/></svg>
+        <ul><li>Agents <b>turn tasks into PRs</b></li><li>Run in <b>isolated, governed</b> sandboxes</li></ul>
+        <div class="lbl">Copilot Coding Agent</div></div>
+      <div class="step c3"><div class="n">3</div><div class="k">Review</div><h3>Autonomous Review</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.2"/><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="18" r="2.2"/><path d="M6 8.2v7.6M18 15.8V10a3 3 0 0 0-3-3h-4M12.5 5l-2 2 2 2"/></svg>
+        <ul><li>Agents <b>review every change</b></li><li><b>Policy-gated</b> auto-merge</li></ul>
+        <div class="lbl">Copilot Code Review</div></div>
+      <div class="step c4"><div class="n">4</div><div class="k">Secure</div><h3>Find &amp; Fix</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/></svg>
+        <ul><li>Agents <b>find and fix</b> vulnerabilities</li><li>Fixes <b>validated &amp; shipped</b> automatically</li></ul>
+        <div class="lbl">GHAS + Autofix</div></div>
+      <div class="step c5"><div class="n">5</div><div class="k">Operate</div><h3>Run &amp; Heal</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M6 11h3l1.5-3 3 6 1.5-3h3M8 21h8M12 17v4"/></svg>
+        <ul><li>Agents <b>diagnose incidents</b> in production</li><li>Signals <b>flow back</b> into code</li></ul>
+        <div class="lbl">Azure SRE Agent</div></div>
+      <div class="step c6"><div class="n">6</div><div class="k">Modernize</div><h3>Pay Down Debt</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v4.5h-4.5"/><path d="M12 16V9.5M9.5 12 12 9.5l2.5 2.5"/></svg>
+        <ul><li><b>Upgrades &amp; migrations</b> at scale</li><li>Legacy backlog <b>burned down</b></li></ul>
+        <div class="lbl">App Modernization</div></div>
+    </div>
+
+    <div class="loop"><div class="t">AGENT HQ · MISSION CONTROL · GITHUB COPILOT APP</div></div>
+    <div class="loop-sub"><b>GitHub Copilot &amp; your own custom agents</b>: one workflow and one governance layer across every stage. Production signals feed back into the next spec.</div>
+
+  </section>
+
+  <!-- SLIDE 3 · Spec-driven development -->
+  <section class="slide s1 sdd">
+    <div class="s1-head">
+      <div class="l">
+        <div class="eyebrow">01 · Spec-Driven Development</div>
+        <h1>Product and engineering, <span class="grad">one shared spec</span></h1>
+        <p class="thesis">The spec is the new source code. The PM-to-engineering handoff becomes a <b>shared, checkpointed workflow</b>: product owns the <b>what and why</b>, engineering owns the <b>how and constraints</b>, and both review every gate.</p>
+      </div>
+      <div class="brand">
+        <div class="logos">
+          <span><svg viewBox="0 0 22 22"><rect x="0" y="0" width="10" height="10" fill="#f25022"/><rect x="12" y="0" width="10" height="10" fill="#7fba00"/><rect x="0" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>Microsoft</span>
+          <div class="sep"></div>
+          <span><svg viewBox="0 0 16 16" fill="#e6edf3"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</span>
+        </div>
+        <div class="tagline">INTENT IN<br>AGENTS EXECUTE<br>OUTCOMES OUT</div>
+      </div>
+    </div>
+
+    <div class="strip s4">
+      <div class="lab">The shared<br>contract</div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="#3b9eff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="#3b9eff"/></svg>
+        <div><h4>Product</h4><p>Desired behavior and acceptance criteria</p></div></div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="#3fd47a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l8-4 8 4-8 4z"/><path d="M4 12l8 4 8-4"/><path d="M4 17l8 4 8-4"/></svg>
+        <div><h4>Engineering</h4><p>Feasibility and architecture</p></div></div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="#a77bff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 5v3M9.5 16h5"/><circle cx="12" cy="4" r="1"/><circle cx="9.5" cy="12.5" r=".6" fill="#a77bff"/><circle cx="14.5" cy="12.5" r=".6" fill="#a77bff"/></svg>
+        <div><h4>AI</h4><p>Accelerates implementation once intent is clear</p></div></div>
+      <div class="it hl"><svg viewBox="0 0 24 24" fill="none" stroke="#ff7ab6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
+        <div><h4>Validation</h4><p>Closes the loop against the agreed spec</p></div></div>
+    </div>
+
+    <div class="flow f4">
+      <div class="step c1"><div class="n">1</div><div class="k">Requirements</div><h3>Intent &amp; Outcomes</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>
+        <ul><li>User journeys and <b>acceptance criteria</b></li><li><b>Metrics that prove impact</b> defined up front</li></ul>
+        <div class="lbl">Product leads</div></div>
+      <div class="step c3"><div class="n">2</div><div class="k">Specification</div><h3>Shared Spec</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v3h3M9 11h6M9 15h6"/></svg>
+        <ul><li>Short <b>markdown spec in the repo</b>, next to the code</li><li>Aligned and <b>reviewed before implementation</b></li></ul>
+        <div class="lbl">Joint review gate</div></div>
+      <div class="step c2"><div class="n">3</div><div class="k">AI Generation</div><h3>Agents Build</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="17" height="14" rx="2"/><path d="M2.5 8h17M5.5 6h.01M7.5 6h.01M9.5 11l-2.5 2.5 2.5 2.5M12.5 11l2.5 2.5-2.5 2.5"/><path d="M20 15.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z" fill="currentColor"/></svg>
+        <ul><li>Code generated <b>from the approved spec</b></li><li>Work split into <b>small, testable tasks</b></li></ul>
+        <div class="lbl">After intent is clear</div></div>
+      <div class="step c6"><div class="n">4</div><div class="k">Validation</div><h3>Verify &amp; Ship</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/></svg>
+        <ul><li>Each spec behavior <b>mapped to tests</b> or code paths</li><li><b>Spec and code ship in the same PR</b></li></ul>
+        <div class="lbl">Closes the loop</div></div>
+    </div>
+
+    <div class="loop"><div class="t">CHECKPOINTED · BOTH REVIEW EVERY GATE</div></div>
+    <div class="loop-sub"><b>Impact metrics feed back</b> into the next spec: are we meeting them, and where are the bottlenecks?</div>
+
+    <div class="hgrid">
+      <div class="glow hc c1"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 11l2 2 4-4"/></svg>Where humans stay in the loop</h3>
+        <ul><li>Decide the <b>acceptance criteria</b> and the feedback to track</li><li>Check metrics are met and <b>find the bottlenecks</b></li><li>The <b>PM is still the arbiter</b> of what ships</li></ul></div>
+      <div class="glow hc c3"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h6"/><path d="M17 15l2 2 3-3"/></svg>Right-size the spec</h3>
+        <ul><li><b>Simple, well-understood work</b>: a ticket. Issue-as-spec to the coding agent</li><li><b>Bigger or ambiguous items</b>: full spec flow that makes decisions and expectations explicit</li><li><b>Instruction files</b> (<code>AGENTS.md</code>, <code>copilot-instructions.md</code>) are standing specs</li></ul></div>
+      <div class="glow hc c6"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 5v3M9.5 16h5"/><circle cx="12" cy="4" r="1"/></svg>The new engineering job</h3>
+        <ul><li>Developers <b>build the agents that build the software</b></li><li>Target state: <b>no human writes or reviews code</b></li><li>Skip elegance at first: <b>start with a crude agent</b> that reaches the goal, then optimize</li></ul></div>
+    </div>
+  </section>
+
+  <!-- SLIDE 4 · AI in testing & operations -->
+  <section class="slide s1 aiops">
+    <div class="s1-head">
+      <div class="l">
+        <div class="eyebrow">02 · AI in Testing &amp; Operations</div>
+        <h1>Beyond the pair programmer: <span class="grad">AI across the SDLC</span></h1>
+        <p class="thesis">AI is part of the whole delivery loop: <b>review and test-gap analysis before merge</b>, <b>validation and triage at deployment</b>, and <b>investigation and guidance in operations</b>.</p>
+      </div>
+      <div class="brand">
+        <div class="logos">
+          <span><svg viewBox="0 0 22 22"><rect x="0" y="0" width="10" height="10" fill="#f25022"/><rect x="12" y="0" width="10" height="10" fill="#7fba00"/><rect x="0" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>Microsoft</span>
+          <div class="sep"></div>
+          <span><svg viewBox="0 0 16 16" fill="#e6edf3"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</span>
+        </div>
+        <div class="tagline">INTENT IN<br>AGENTS EXECUTE<br>OUTCOMES OUT</div>
+      </div>
+    </div>
+
+    <div class="flow f3">
+      <div class="step c1"><div class="n">1</div><div class="k">Before merge</div><h3>Review &amp; Test</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.2"/><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="18" r="2.2"/><path d="M6 8.2v7.6M18 15.8V10a3 3 0 0 0-3-3h-4M12.5 5l-2 2 2 2"/></svg>
+        <ul><li><b>AI-powered PR review</b> as the first pass, including test coverage</li><li><b>Test gap analysis</b> for reliability, coverage and best practices</li><li>Coding agent <b>runs your tests and linter</b> before it pushes</li><li>Playwright agents <b>plan, generate and heal</b> tests; Autofix fixes code-scanning alerts</li></ul>
+        <div class="stat"><b>1M+</b>developers used Copilot code review in preview</div>
+        <div class="lbl">Copilot Code Review · Coding Agent · Autofix</div></div>
+      <div class="step c4"><div class="n">2</div><div class="k">At deployment</div><h3>Validate &amp; Triage</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="2"/></svg>
+        <ul><li><b>Real-time diagnostics</b> on production deployments</li><li><b>Automated failure analysis</b> and triage</li><li><b>Continuous validation</b> as each ring rolls out</li><li>Ring-based rollout and feature flags <b>remain the backbone</b></li></ul>
+        <div class="stat"><b>Rings</b>+ flags stay the safety control</div>
+        <div class="lbl">Safe Deployment · Rings + Flags</div></div>
+      <div class="step c5"><div class="n">3</div><div class="k">In operations</div><h3>Investigate &amp; Act</h3>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M6 11h3l1.5-3 3 6 1.5-3h3M8 21h8M12 17v4"/></svg>
+        <ul><li><b>Always-on monitoring</b>, alert triage and root-cause analysis</li><li><b>Investigation with action guidance</b>; acts only with your confirmation</li><li><b>Fix PRs created automatically</b> by the coding agent, tied to work-item metadata</li></ul>
+        <div class="stat"><b>40K+</b>incidents in Microsoft Research's LLM root-cause study</div>
+        <div class="lbl">Azure SRE Agent · Copilot in Azure</div></div>
+    </div>
+
+    <div class="loop"><div class="t">HUMAN OVERSIGHT · AI OUTPUT IS A DRAFT</div></div>
+    <div class="loop-sub"><b>Agent PRs need a human merge</b>, autofixes need acceptance, and ops agents need confirmation. Production signals feed back into the next change.</div>
+
+    <div class="recs">
+      <div class="lab">Recommended<br>practices</div>
+      <div class="r c1"><div class="num">1</div><div><h4>Draft, not decision</h4><p>AI review, tests and autofix still pass your <b>existing approval gates</b></p></div></div>
+      <div class="r c3"><div class="num">2</div><div><h4>Measure the tests</h4><p>Track <b>coverage and flaky-test rate</b>; gains vary by codebase</p></div></div>
+      <div class="r c4"><div class="num">3</div><div><h4>Keep the rings</h4><p>Ring-based rollout stays the <b>safety control</b>, however good AI triage gets</p></div></div>
+      <div class="r c6"><div class="num">4</div><div><h4>Confirm and log</h4><p><b>Explicit confirmation</b> before any ops agent acts on production</p></div></div>
+      <div class="r c5"><div class="num">5</div><div><h4>Read-only first</h4><p>Start AIOps with <b>alert summaries and RCA suggestions</b>, then remediation</p></div></div>
+    </div>
+  </section>
+
+  <!-- SLIDE 5 · Measurement beyond DORA -->
+  <section class="slide s1 meas">
+    <div class="s1-head">
+      <div class="l">
+        <div class="eyebrow">03 · Measuring Productivity Beyond DORA</div>
+        <h1>DORA is necessary, <span class="grad">not sufficient</span></h1>
+        <p class="thesis">Measure <b>satisfaction, flow, quality and business outcomes together</b>, follow work downstream to <b>customer impact</b>, and never put a target on a single throughput metric.</p>
+      </div>
+      <div class="brand">
+        <div class="logos">
+          <span><svg viewBox="0 0 22 22"><rect x="0" y="0" width="10" height="10" fill="#f25022"/><rect x="12" y="0" width="10" height="10" fill="#7fba00"/><rect x="0" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>Microsoft</span>
+          <div class="sep"></div>
+          <span><svg viewBox="0 0 16 16" fill="#e6edf3"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</span>
+        </div>
+        <div class="tagline">INTENT IN<br>AGENTS EXECUTE<br>OUTCOMES OUT</div>
+      </div>
+    </div>
+
+    <div class="strip fw">
+      <div class="lab">Frame&shy;works</div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="#3b9eff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>
+        <div><h4>DORA</h4><p>Delivery throughput and stability</p></div></div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="#a77bff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6.5 6.2M12 12 3.5 9.5"/></svg>
+        <div><h4>SPACE<small>2021</small></h4><p>Five dimensions; pick 3+ and never Activity alone</p></div></div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="#2fd6c4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c3-6 6-6 9 0s6 6 9 0"/></svg>
+        <div><h4>DevEx<small>2023</small></h4><p>Flow state, feedback loops, cognitive load</p></div></div>
+      <div class="it hl"><svg viewBox="0 0 24 24" fill="none" stroke="#ff7ab6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="#ff7ab6"/></svg>
+        <div><h4>GitHub ESSP</h4><p>Quality, velocity, happiness → business outcomes</p></div></div>
+    </div>
+
+    <div class="m2">
+      <div class="glow pr2c c3">
+        <div class="hd"><span class="k">Highlighted metric</span><h3>PR to Customer (PR2C)</h3></div>
+        <div class="tl">
+          <span class="ms s" style="left:0">PR created</span>
+          <span class="ms" style="left:50%">Merged</span>
+          <span class="ms e" style="left:100%">First production deploy</span>
+          <div class="seg c1"><div class="bar"></div><div class="n">PR Completion Time</div></div>
+          <div class="seg c6"><div class="bar"></div><div class="n">Merge to Customer</div></div>
+        </div>
+        <div class="span"><div class="t">PR2C</div></div>
+        <p style="margin-top:1.4vh">Extends pull-request flow <b>beyond merge</b>. A team can merge fast, but if deployment or rollout is slow, <b>customer value is still delayed</b>. PR2C closes that DORA blind spot.</p>
+      </div>
+      <div class="glow hc c6"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>What this adds beyond DORA</h3>
+        <ul><li><b>Customer-facing latency</b>, not just merge speed</li><li><b>Coverage and attribution confidence</b> in the data</li><li>A link from <b>planning artifacts to production outcomes</b></li><li>Built for large orgs, where bottlenecks often appear <b>after code is written</b></li></ul></div>
+    </div>
+
+    <div class="hgrid">
+      <div class="glow hc c1"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Speed</h3>
+        <div class="tags"><span>Idea to Customer</span><span>PR to Customer</span><span>PR Completion Time</span></div>
+        <div class="stat"><b>55%</b>faster task completion with Copilot in a controlled trial</div></div>
+      <div class="glow hc c5"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14s1.3 2 3.5 2 3.5-2 3.5-2M9 9.5h.01M15 9.5h.01"/></svg>Ease</h3>
+        <div class="tags"><span>Focus Time</span><span>Bad Developer Days</span><span>Build Metrics</span></div>
+        <div class="stat"><b>82%</b>chance of a good day with minimal interruptions, vs 7% when interrupted</div></div>
+      <div class="glow hc c4"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/></svg>Quality</h3>
+        <div class="tags"><span>Incident Mitigation Time</span><span>PRs Per Incident</span></div>
+        <div class="stat">Measure AI with <b style="font-size:1em">telemetry + surveys + controlled comparison</b></div></div>
+    </div>
+  </section>
+
+  <!-- SLIDE 6 · GitHub's framework (from the Copilot KPIs deck) -->
+  <section class="slide s1 meas">
+    <div class="s1-head">
+      <div class="l">
+        <div class="eyebrow">03 · Measurement · GitHub's Framework</div>
+        <h1>What metrics does <span class="grad">GitHub track?</span></h1>
+        <p class="thesis">Three zones that keep each other honest, all in service of <b>business outcomes</b>.</p>
+      </div>
+      <div class="brand">
+        <div class="logos">
+          <span><svg viewBox="0 0 22 22"><rect x="0" y="0" width="10" height="10" fill="#f25022"/><rect x="12" y="0" width="10" height="10" fill="#7fba00"/><rect x="0" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>Microsoft</span>
+          <div class="sep"></div>
+          <span><svg viewBox="0 0 16 16" fill="#e6edf3"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</span>
+        </div>
+        <div class="tagline">INTENT IN<br>AGENTS EXECUTE<br>OUTCOMES OUT</div>
+      </div>
+    </div>
+
+    <div class="ghf">
+      <div class="rows">
+        <div class="glow ghr c6">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z"/></svg>
+          <div><h3>Developer happiness</h3><p>Developers are enabled to do their best work and experience satisfaction.</p></div>
+          <div class="tags"><span>Flow state experience</span><span>Engineering tooling satisfaction</span><span>Copilot satisfaction</span></div>
+        </div>
+        <div class="glow ghr c2">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <div><h3>Quality</h3><p>Ship secure, reliable, and easily maintainable code.</p></div>
+          <div class="tags"><span>Change failure rate</span><span>Failed deployment recovery time</span><span>Code security and maintainability</span></div>
+        </div>
+        <div class="glow ghr c1">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <div><h3>Velocity</h3><p>Ship regularly and at a pace that can help you meet business needs.</p></div>
+          <div class="tags"><span>Lead time</span><span>Deployment frequency</span><span>PRs merged per developer</span></div>
+        </div>
+      </div>
+      <div class="glow gbo c4">
+        <div class="top"><h3>Business outcomes</h3>
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg></div>
+        <p>Ship code that enables the business to innovate and meet its strategic objectives with increasing efficiency.</p>
+        <ul><li>AI leverage</li><li>Engineering expenses to revenue</li><li>Feature engineering expenses to total engineering expenses</li></ul>
+        <span class="opill">Where the three zones lead</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 7 · EngThrive metrics (from the Copilot KPIs deck) -->
+  <section class="slide s1 meas">
+    <div class="s1-head">
+      <div class="l">
+        <div class="eyebrow">03 · Measurement · Microsoft's DevEx Initiative</div>
+        <h1>What metrics does <span class="grad">EngThrive</span> track?</h1>
+        <p class="thesis">Microsoft's DevEx initiative applies SPACE with a few metrics for <b>Satisfaction</b>, <b>Collaboration</b> and <b>Efficiency</b>.</p>
+      </div>
+      <div class="brand">
+        <div class="logos">
+          <span><svg viewBox="0 0 22 22"><rect x="0" y="0" width="10" height="10" fill="#f25022"/><rect x="12" y="0" width="10" height="10" fill="#7fba00"/><rect x="0" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>Microsoft</span>
+          <div class="sep"></div>
+          <span><svg viewBox="0 0 16 16" fill="#e6edf3"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</span>
+        </div>
+        <div class="tagline">INTENT IN<br>AGENTS EXECUTE<br>OUTCOMES OUT</div>
+      </div>
+    </div>
+
+    <ul class="mlist">
+      <li class="c3"><div class="let">S</div><div class="pill">ES Satisfaction (NSAT)</div><div class="d">A measure of satisfaction that developers have with <em>"the engineering system you use at Microsoft."</em></div></li>
+      <li class="c1"><div class="let">C</div><div class="pill">Code Review Dwell</div><div class="d">Capturing one aspect of collaboration, dwell is the delta between when one dev creates a pull request (PR) and another acts on it.</div></li>
+      <li class="c2"><div class="let">E</div><div class="pill">Time-To-First-PR</div><div class="d">The time between when a new hire starts at Microsoft and when they complete their first PR.</div></li>
+      <li class="c5"><div class="let">E</div><div class="pill">PR Completion Time</div><div class="d">The delta between when a PR is created and when it is successfully closed.</div></li>
+      <li class="c4"><div class="let">E</div><div class="pill">Uninterrupted Focus Time</div><div class="d">The amount of uninterrupted time a dev has for deep thinking and creative problem solving.</div></li>
+    </ul>
+  </section>
+
+  <!-- SLIDE 8 · Why these metrics (from the Copilot KPIs deck) -->
+  <section class="slide s1 meas">
+    <div class="s1-head">
+      <div class="l">
+        <div class="eyebrow">03 · Measurement · The Evidence</div>
+        <h1>Why did we choose <span class="grad">these metrics?</span></h1>
+        <p class="thesis">Each EngThrive metric is tied to a measurable effect on <b>retention, innovation, onboarding, throughput or productivity</b>.</p>
+      </div>
+      <div class="brand">
+        <div class="logos">
+          <span><svg viewBox="0 0 22 22"><rect x="0" y="0" width="10" height="10" fill="#f25022"/><rect x="12" y="0" width="10" height="10" fill="#7fba00"/><rect x="0" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>Microsoft</span>
+          <div class="sep"></div>
+          <span><svg viewBox="0 0 16 16" fill="#e6edf3"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</span>
+        </div>
+        <div class="tagline">INTENT IN<br>AGENTS EXECUTE<br>OUTCOMES OUT</div>
+      </div>
+    </div>
+
+    <div class="wgrid">
+      <div class="glow wc c3"><div class="badge">S</div><div class="nm">ES Satisfaction (NSAT)</div><div class="m">2×</div><p>Dissatisfied devs are <b>2× as likely to leave</b>.</p></div>
+      <div class="glow wc c1"><div class="badge">C</div><div class="nm">Code Review Dwell</div><div class="m">20%</div><p>Fast code reviews make devs feel <b>20% more innovative</b>.</p></div>
+      <div class="glow wc c2"><div class="badge">E</div><div class="nm">Time-To-First-PR</div><div class="m">17%<small>/ 15%</small></div><p>Devs with a fast first PR onboard <b>17% faster</b> and have <b>15% longer retention</b>.</p></div>
+      <div class="glow wc c5"><div class="badge">E</div><div class="nm">PR Completion Time</div><div class="m">10%</div><p>Fast PR completion loops lead to <b>10% higher total change throughput</b>.</p></div>
+      <div class="glow wc c4"><div class="badge">E</div><div class="nm">Uninterrupted Focus Time</div><div class="m">50%</div><p>Devs with deep work time feel <b>50% more productive</b>.</p></div>
+    </div>
+  </section>
+
+  <!-- SLIDE 9 · Planning at scale -->
+  <section class="slide s1 plan">
+    <div class="s1-head">
+      <div class="l">
+        <div class="eyebrow">04 · Planning at Scale</div>
+        <h1>Scale comes from <span class="grad">aligned autonomy</span></h1>
+        <p class="thesis">OKRs move planning from <b>activity to results</b>: alignment from the top, <b>autonomy at the edges</b>, and hard quality guardrails that keep live-site health ahead of feature throughput.</p>
+      </div>
+      <div class="brand">
+        <div class="logos">
+          <span><svg viewBox="0 0 22 22"><rect x="0" y="0" width="10" height="10" fill="#f25022"/><rect x="12" y="0" width="10" height="10" fill="#7fba00"/><rect x="0" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>Microsoft</span>
+          <div class="sep"></div>
+          <span><svg viewBox="0 0 16 16" fill="#e6edf3"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</span>
+        </div>
+        <div class="tagline">INTENT IN<br>AGENTS EXECUTE<br>OUTCOMES OUT</div>
+      </div>
+    </div>
+
+    <div class="flow cad">
+      <div class="step c1"><div class="n">1</div><div class="k">Sprint</div><div class="dur">3 weeks</div><p>Teams ship and send <b>sprint mail</b></p><div class="lbl">Team owns</div></div>
+      <div class="step c2"><div class="n">2</div><div class="k">Plan</div><div class="dur">3 sprints</div><p>Teams commit to <b>what they will deliver</b></p><div class="lbl">Team owns</div></div>
+      <div class="step c3"><div class="n">3</div><div class="k">Season</div><div class="dur">6 months</div><p>Priorities and <b>nested OKRs</b> set</p><div class="lbl">Leadership owns</div></div>
+      <div class="step c6"><div class="n">4</div><div class="k">Strategy</div><div class="dur">12 months</div><p>Direction and <b>business outcomes</b></p><div class="lbl">Leadership owns</div></div>
+    </div>
+
+    <div class="hgrid">
+      <div class="glow hc c2"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 20a6 6 0 0 1 12 0M15 20a4.5 4.5 0 0 1 6.5-4"/></svg>Small, full-stack teams</h3>
+        <ul><li><b>10–12 people</b>, cross-functional, owning features end to end</li><li>Charters that last <b>12–18 months</b></li><li>A <b>rotating customer crew</b> absorbs interrupt-driven work</li></ul></div>
+      <div class="glow hc c4"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M12 8v4M12 15h.01"/></svg>The bug cap</h3>
+        <ul><li>Open bugs <b>≤ 5 × engineers</b> on the team</li><li>Over the cap, <b>feature work stops</b> until it's back under</li><li>Live-site health <b>comes before throughput</b></li></ul></div>
+      <div class="glow hc c3"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Nested OKRs, visible roll-up</h3>
+        <ul><li>OKRs cascade with <b>leading indicators</b></li><li>Leaders see roll-ups in <b>Delivery Plans or GitHub Projects</b></li><li>Visibility <b>without dictating</b> how teams execute</li></ul></div>
+    </div>
+
+    <div class="recs">
+      <div class="lab">Recommended<br>practices</div>
+      <div class="r c1"><div class="num">1</div><div><h4>Three-tier cadence</h4><p>Sprints, seasons and annual strategy, <b>each with an owner</b></p></div></div>
+      <div class="r c2"><div class="num">2</div><div><h4>Vertical teams</h4><p>Small, <b>end-to-end teams</b> with charters longer than a year</p></div></div>
+      <div class="r c4"><div class="num">3</div><div><h4>Quality guardrail</h4><p>A <b>bug cap tied to team size</b></p></div></div>
+      <div class="r c6"><div class="num">4</div><div><h4>Protect focus</h4><p>A <b>rotating customer or live-site crew</b> takes interrupts</p></div></div>
+      <div class="r c3"><div class="num">5</div><div><h4>Cascade OKRs</h4><p>Leading indicators and <b>leadership roll-up</b> without micromanaging</p></div></div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <a class="download-link" data-save-html href="https://github.com/Lantern-Cloud-Services/IP-Index/blob/main/presentations/Pres-GHCP_MS_engineering_practices/ms-engineering-practices-deck.html" target="_blank" rel="noopener noreferrer">
+      <svg viewBox="0 0 16 16"><path d="M7.47 10.78a.75.75 0 0 0 1.06 0l3.25-3.25a.75.75 0 0 0-1.06-1.06L8.75 8.44V1.75a.75.75 0 0 0-1.5 0v6.69L5.28 6.47a.75.75 0 0 0-1.06 1.06l3.25 3.25zM3.5 12.25a.75.75 0 0 0-1.5 0v1c0 .966.784 1.75 1.75 1.75h8.5A1.75 1.75 0 0 0 14 13.25v-1a.75.75 0 0 0-1.5 0v1a.25.25 0 0 1-.25.25h-8.5a.25.25 0 0 1-.25-.25v-1z"/></svg>
+      <span>Download</span>
+    </a>    <div class="dots"></div>
+    <span id="counter">1 / 3</span>
+  </div>
+</div>
+<button class="nav prev" aria-label="Previous">‹</button>
+<button class="nav next" aria-label="Next">›</button>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  const dots = document.querySelector('.dots');
+  const counter = document.getElementById('counter');
+  let i = 0;
+  slides.forEach((_, n) => { const d = document.createElement('div'); d.className = 'dot'; d.onclick = () => go(n); dots.appendChild(d); });
+  function go(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    [...dots.children].forEach((d, k) => d.classList.toggle('on', k === i));
+    counter.textContent = `${i + 1} / ${slides.length}`;
+  }
+  document.addEventListener('keydown', e => {
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) go(i + 1);
+    if (['ArrowLeft', 'PageUp'].includes(e.key)) go(i - 1);
+    if (e.key === 'Home') go(0);
+    if (e.key === 'End') go(slides.length - 1);
+  });
+  document.querySelector('.prev').onclick = () => go(i - 1);
+  document.querySelector('.next').onclick = () => go(i + 1);
+  go(0);
+</script>
+<script>
+/* Download button: save this deck as a standalone HTML file (Save As dialog where supported). */
+(function () {
+  var link = document.querySelector('[data-save-html]');
+  if (!link) return;
+  link.addEventListener('click', async function (e) {
+    e.preventDefault();
+    var name = decodeURIComponent(location.pathname.split('/').pop()) || 'presentation.html';
+    async function getHtml() {
+      if (location.protocol !== 'file:') {
+        try {
+          var r = await fetch(location.href.split('#')[0], { cache: 'no-store' });
+          if (r.ok) return await r.text();
+        } catch (_) {}
+      }
+      return '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    }
+    if (window.showSaveFilePicker) {
+      try {
+        var handle = await window.showSaveFilePicker({
+          suggestedName: name,
+          types: [{ description: 'HTML file', accept: { 'text/html': ['.html'] } }]
+        });
+        var writable = await handle.createWritable();
+        await writable.write(new Blob([await getHtml()], { type: 'text/html' }));
+        await writable.close();
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+      }
+    }
+    var url = URL.createObjectURL(new Blob([await getHtml()], { type: 'text/html' }));
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  });
+})();
+</script>
+</body>
+</html>
